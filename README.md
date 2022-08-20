@@ -1,7 +1,8 @@
 ![VYRL](VYRL-banner.jpg) 
 # AI Viral Video Generation
 
-VYRL is an online presence, it is a [YouTube channel](https://www.youtube.com/channel/UC7xJpL8WWGUOxvbbHshcmQw) that shares the **best** and **funniest** videos aggregated from different social channels and creators from all over the web, including [Twitter](https://twitter.com/vyrl_videos), [Instagram Reels](https://www.instagram.com/vyrl_videos), and of course [Tik-Tok](https://www.tiktok.com/@vyrlvideos)! But VYRL also generates it's own viral videos!  It can generate automated videos for 
+VYRL is an online presence, it is a [YouTube channel](https://www.youtube.com/channel/UC7xJpL8WWGUOxvbbHshcmQw) that shares the **best** and **funniest** videos aggregated from different social channels and creators from all over the web, including [Twitter](https://twitter.com/vyrl_videos), [Instagram Reels](https://www.instagram.com/vyrl_videos), and of course [Tik-Tok](https://www.tiktok.com/@vyrlvideos)! 
+But BEST of all VYRL also generates it's own viral videos!
 
 ## Hey, What's this VYRL thing?
 VYRL is a multi-faceted video production software package. It drives all the content published throughout its various channels online.
