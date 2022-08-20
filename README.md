@@ -18,7 +18,7 @@ VYRL is a total network of software. It includes the following components:
 
 ## Uh-huh, Where can I find it?
 You can find VYRL all over the web, but since you asked, specifically we have the following presence:
-- **VYRL -- THe BEST Videos on the Web!** on [YouTube channel](https://www.youtube.com/channel/UC7xJpL8WWGUOxvbbHshcmQw) 
+- **VYRL -- THe BEST Videos on the Web!** on [YouTube](https://www.youtube.com/channel/UC7xJpL8WWGUOxvbbHshcmQw) 
 - **@vyrl_videos** on [Twitter](https://twitter.com/vyrl_videos) 
 - **@vyrl_videos** on [Instagram Reels](https://www.instagram.com/vyrl_videos)
 - **vyrlvideos** on [Tumblr](vyrlvideos.tumblr.com)
