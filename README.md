@@ -8,7 +8,7 @@ But BEST of all VYRL also generates it's own viral videos!
 VYRL is a multi-faceted video production software package. It drives all the content published throughout its various channels online.
 it is a system, it is a network of social accounts, primarily a [YouTube channel](https://www.youtube.com/channel/UC7xJpL8WWGUOxvbbHshcmQw) that shares the **best** and **funniest** videos aggregated from different social channels and creators from all over the web, including [Twitter](https://twitter.com/vyrl_videos), [Instagram Reels](https://www.instagram.com/vyrl_videos), and of course [Tik-Tok](https://www.tiktok.com/@vyrlvideos)! Buuuut VYRL also generates its own viral videos! It produces automated viral videos for relaxing/sleep instrumentals, rain/thunder videos, news article summaries, nature flyovers and much more!
 
-## Okay, but like what's it made of??
+## Okay, but like what *is* it??
 VYRL is a total network of software. It includes the following components:
 
 - Third-Party API interface streaming photo/video resources from services like [Pexels API](https://www.pexels.com/api/documentation/)
