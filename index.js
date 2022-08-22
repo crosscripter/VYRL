@@ -11,13 +11,17 @@ const downloadFile = async (fileUrl, downloadFolder) => {
   const fileName = basename(fileUrl).split('?')[0].trim()
   const localFilePath = resolve(__dirname, downloadFolder, fileName)
 
-  if (existsSync(localFilePath))  {
+  if (existsSync(localFilePath)) {
     log('file', localFilePath, 'exists')
     return
   }
 
   try {
-    const response = await axios({ method: 'GET', url: fileUrl, responseType: 'stream' })
+    const response = await axios({
+      method: 'GET',
+      url: fileUrl,
+      responseType: 'stream',
+    })
     const w = response.data.pipe(createWriteStream(localFilePath))
 
     w.on('finish', () => log('downloaded', fileUrl))
@@ -44,7 +48,7 @@ const search = async (query) => {
   const videos = await search(query)
 
   log('Downloading videos...')
-  await Promise.all(videos.map(async ({ video }) => 
-    await downloadFile(video, `./`)
-  ))
+  await Promise.all(
+    videos.map(async ({ video }) => await downloadFile(video, `./`))
+  )
 })()
