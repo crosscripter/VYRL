@@ -1,30 +1,24 @@
-const { log } = require('../logger')
-const { Router } = require('express')
+require('dotenv').config()
 const { parse } = require('path')
-const router = Router('editor')
 const ffmpeg = require('./ffmpeg')
+const { Router } = require('express')
+const { media_types } = require('../config')
 
-const types = { mp4: 'video', mp3: 'audio' }
+const router = Router('editor')
 
 router.get('/concat', async ({ query: { files } }, res) => {
   files = files.split(',')
   const ext = parse(files[0]).ext.slice(1)
   const ext2 = parse(files[1]).ext.slice(1)
-  console.log('ext', ext, 'ext2', ext2)
-  const type = types[ext]
+  const type = media_types[ext]
   const isAV = ext === 'mp4' && ext !== ext2
-  await ffmpeg[`concat${isAV ? 'AV' : ext}`](files)
-  files.push(`output.${ext}`)
+  const out = await ffmpeg[`concat${isAV ? 'AV' : ext}`](files)
 
   return res.send(
-    files
-      .map(
-        (file) => `
-    <label>${file}</label>
-    <${type} src="${file}" />
+    `<label>${out}</label>
+    <br/>
+    <${type} src="/${parse(out).base}" controls autoplay />
   `
-      )
-      .join('<br>')
   )
 })
 
