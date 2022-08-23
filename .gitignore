@@ -104,5 +104,6 @@ dist
 # TernJS port file
 .tern-port
 
-server/pexels/downloads/*.*
-*.ts
+# Video and audio assets
+server/public/
+.ts
