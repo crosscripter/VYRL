@@ -105,5 +105,5 @@ dist
 .tern-port
 
 # Video and audio assets
-server/public/
+server/public/*.*
 .ts
