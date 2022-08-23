@@ -9,7 +9,7 @@ const createIntermediate = async (file) => {
   log('ffmpeg: transcoding', file, 'to MPEG-2 transport stream (H.264/AAC)...')
 
   return new Promise((resolve, reject) => {
-    const out = `${Math.random().toString(13).slice(2)}.ts`
+    const out = `./server/public/${Math.random().toString(13).slice(2)}.ts`
 
     ffmpeg(file)
       .outputOptions('-c', 'copy', '-bsf:v', 'h264_mp4toannexb', '-f', 'mpegts')
@@ -24,8 +24,8 @@ const createIntermediate = async (file) => {
 }
 
 // ffmpeg -i "concat:intermediate1.ts|intermediate2.ts" -c copy -bsf:a aac_adtstoasc output.mp4
-const concat = async (files) => {
-  const base = `./server/pexels/downloads`
+const concatVideos = async (files) => {
+  const base = `./server/public`
   const names = await Promise.all(
     files.map((f) => createIntermediate(`${base}/${f}`))
   )
@@ -45,4 +45,4 @@ const concat = async (files) => {
   log(`ffmpeg: ${files.length} videos concatenated successfully`)
 }
 
-module.exports = { concat }
+module.exports = { concatVideos }

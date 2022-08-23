@@ -10,7 +10,7 @@ const client = createClient(PEXELS_API_KEY)
 
 const download = async (url) => {
   const fileName = basename(url).split('?')[0].trim()
-  const localFilePath = resolve(__dirname, 'downloads', fileName)
+  const localFilePath = resolve('./server/public', fileName)
 
   if (existsSync(localFilePath)) {
     log('file', localFilePath, 'exists')
