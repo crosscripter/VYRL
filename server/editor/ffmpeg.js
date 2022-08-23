@@ -23,26 +23,32 @@ const createIntermediate = async (file) => {
   })
 }
 
-// ffmpeg -i "concat:intermediate1.ts|intermediate2.ts" -c copy -bsf:a aac_adtstoasc output.mp4
-const concatVideos = async (files) => {
+const concatMedia = (ext, options) => async (files) => {
   const base = `./server/public`
   const names = await Promise.all(
     files.map((f) => createIntermediate(`${base}/${f}`))
   )
+
   const namesString = names.join('|')
-  log('ffmpeg: concatenating', namesString, 'into single mp4...')
+  log('ffmpeg: concatenating media ', namesString, '...')
 
   await new Promise((resolve, reject) =>
     ffmpeg(`concat:${namesString}`)
-      .outputOptions('-c', 'copy', '-bsf:a', 'aac_adtstoasc')
-      .output(`${base}/output.mp4`)
+      .outputOptions(...options)
+      .output(`${base}/output.${ext}`)
       .on('end', resolve)
       .on('error', reject)
       .run()
   )
 
   names.forEach(unlinkSync)
-  log(`ffmpeg: ${files.length} videos concatenated successfully`)
+  log(`ffmpeg: ${files.length} ${ext}s concatenated successfully`)
 }
 
-module.exports = { concatVideos }
+// ffmpeg -i "concat:20181021_080743.MP3|20181021_090745.MP3|20181021_100745.MP3" -acodec copy 20181021.mp3
+const concatmp3 = concatMedia('mp3', ['-acodec', 'copy'])
+
+// ffmpeg -i "concat:intermediate1.ts|intermediate2.ts" -c copy -bsf:a aac_adtstoasc output.mp4
+const concatmp4 = concatMedia('mp4', ['-c', 'copy', '-bsf:a', 'aac_adtstoasc'])
+
+module.exports = { concatmp3, concatmp4 }

@@ -1,23 +1,25 @@
 const { log } = require('../logger')
 const { Router } = require('express')
+const { parse } = require('path')
 const router = Router('editor')
 const ffmpeg = require('./ffmpeg')
 
-router.post('/video/concat', async ({ body: { videos } }, res) =>
-  res.send(await ffmpeg.concatVideos(videos))
-)
+const types = { mp4: 'video', mp3: 'audio' }
 
-router.get('/video/concat', async ({ query: { videos } }, res) => {
-  videos = videos.split(',')
-  await ffmpeg.concatVideos(videos)
-  videos.push('output.mp4')
+router.get('/concat', async ({ query: { files } }, res) => {
+  files = files.split(',')
+  const ext = parse(files[0]).ext.slice(1)
+  console.log('ext', ext)
+  const type = types[ext]
+  await ffmpeg[`concat${ext}`](files)
+  files.push(`output.${ext}`)
 
   return res.send(
-    videos
+    files
       .map(
-        (video) => `
-    <label>${video}</label>
-    <video src="${video}" />
+        (file) => `
+    <label>${file}</label>
+    <${type} src="${file}" />
   `
       )
       .join('<br>')
