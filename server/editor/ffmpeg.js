@@ -22,7 +22,8 @@ const _ffmpeg = async (inputs, ext, options = [], filter = null) => {
       $ffmpeg = $ffmpeg.addInput(input)
     })
 
-    $ffmpeg.outputOptions(...options).output(out)
+    // $ffmpeg = $ffmpeg.addInputOption('-stream_loop', '0')
+    $ffmpeg = $ffmpeg.outputOptions(...options).output(out)
 
     if (filter) $ffmpeg = $ffmpeg.complexFilter(filter)
 
