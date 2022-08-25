@@ -9,7 +9,7 @@ const tempName = (ext) =>
 
 const read = async (text) => {
   log('reader: reading "' + text + '"...')
-  const output = tempName('mp3')
+  const output = tempName('wav')
 
   return new Promise((res, rej) => {
     say.export(text, null, 1.0, output, async (err) => {
@@ -18,10 +18,8 @@ const read = async (text) => {
         return rej(err)
       }
 
-      const mp3 = await wavToMp3(output)
-      log(`Text "${text}" exported to ${mp3}`)
-      //   renameSync(output, `./server/public/${output}`)
-      return res(parse(mp3).base)
+      log(`Text "${text}" exported to ${output}`)
+      return res(parse(output).base)
     })
   })
 }
