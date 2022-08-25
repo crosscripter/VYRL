@@ -6,15 +6,15 @@ const ffmpeg = require('fluent-ffmpeg')
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
 ffmpeg.setFfmpegPath(ffmpegPath)
 
-const _ffmpeg = async (inputs, ext, ...options) => {
+const _ffmpeg = async (inputs, ext, options = [], filter = null) => {
   return new Promise((resolve, reject) => {
     const out = tempName(ext)
     inputs = Array.isArray(inputs) ? inputs : [inputs]
 
     log(
-      `ffmpeg ${inputs.map((i) => `-i ${i}`).join(' ')} ${options.join(
-        ' '
-      )} ${out}`
+      `ffmpeg ${inputs.map((i) => `-i ${i}`).join(' ')} ${options.join(' ')} ${
+        filter ? `-filter_complex="${filter}"` : ''
+      } ${out}`
     )
 
     let $ffmpeg = ffmpeg()
@@ -22,33 +22,27 @@ const _ffmpeg = async (inputs, ext, ...options) => {
       $ffmpeg = $ffmpeg.addInput(input)
     })
 
+    $ffmpeg.outputOptions(...options).output(out)
+
+    if (filter) $ffmpeg = $ffmpeg.complexFilter(filter)
+
     $ffmpeg
-      .outputOptions(...options)
-      .output(out)
       .on('end', () => resolve(out))
       .on('error', (e) => reject(e))
       .run()
   })
 }
 
-const wavToMp3 = async (file) => {
-  const out = await _ffmpeg(file, 'mp3', [])
-  log(`ffmpeg: converted ${file} wav into mp3 ${out}`)
-  return out
-}
-
 const createIntermediate = async (file) => {
   log('ffmpeg: transcoding', file, 'to MPEG-2 transport stream (H.264/AAC)...')
-  return await _ffmpeg(
-    file,
-    'ts',
+  return await _ffmpeg(file, 'ts', [
     '-c',
     'copy',
     '-bsf:v',
     'h264_mp4toannexb',
     '-f',
-    'mpegts'
-  )
+    'mpegts',
+  ])
 }
 
 const concatMedia = (ext, options) => async (files) => {
@@ -56,7 +50,7 @@ const concatMedia = (ext, options) => async (files) => {
   const names = await Promise.all(rfiles.map(createIntermediate))
   const namesString = names.join('|')
   log('ffmpeg: concatenating media ', namesString, '...')
-  const out = await _ffmpeg(`concat:${namesString}`, ext, ...options)
+  const out = await _ffmpeg(`concat:${namesString}`, ext, options)
   log(`ffmpeg: ${ext}s ${files.join(' ')} concatenated as ${out} successfully`)
   names.map((name) => unlinkSync(name))
   return out
@@ -70,21 +64,63 @@ const concatAV = async (files) => {
   const [video, audio] = files
   log(`ffmpeg: Adding audio ${audio} to video ${video}...`)
   const names = resolveFiles(files)
-  const out = await _ffmpeg(
-    names,
-    'mp4',
+  const out = await _ffmpeg(names, 'mp4', [
     '-c',
     'copy',
     '-map',
     '0:v',
     '-map',
     '1:a',
-    '-shortest'
-  )
+    '-shortest',
+  ])
   log(
     `ffmpeg: Audio track ${audio} added to ${video} video as ${out} successfully`
   )
   return out
 }
 
-module.exports = { concatmp3, concatmp4, concatAV, wavToMp3 }
+const voiceOver = async (files) => {
+  const names = resolveFiles(files)
+  return await _ffmpeg(
+    names,
+    'mp3',
+    ['-y'],
+    '[0:0]volume=0.3[a];[1:0]volume=2.0[b];[a][b]amix=inputs=2:duration=longest'
+  )
+}
+
+const subtitle = async (files) => {
+  const names = resolveFiles(files)
+  const [video, subtitle] = names
+  return await _ffmpeg([video], 'mp4', ['-vf', `subtitles=${subtitle}`])
+
+  return await _ffmpeg([video, subtitle], 'mp4', [
+    '-c',
+    'copy',
+    '-c:s',
+    'mov_text',
+  ])
+}
+
+const watermark = async (files) => {
+  const names = resolveFiles(files)
+  const [video, watermark] = names
+
+  return await _ffmpeg(
+    [video, watermark],
+    'mp4',
+    ['-c:a', 'copy'],
+    `[1][0]scale2ref=w=oh*mdar:h=ih*0.1[logo][video];` +
+      `[video][logo]overlay=W-w-5:5:enable='gte(t,5)':format=auto,format=yuv420p;` +
+      `[1]format=rgba,colorchannelmixer=aa=0.5[1]`
+  )
+}
+
+module.exports = {
+  concatmp3,
+  concatmp4,
+  concatAV,
+  voiceOver,
+  subtitle,
+  watermark,
+}
