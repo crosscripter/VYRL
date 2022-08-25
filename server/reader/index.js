@@ -1,11 +1,11 @@
 const { Router } = require('express')
-const { read } = require('./reader')
+const { say } = require('./reader')
 const router = Router('reader')
 
 router.get('/', async (req, res) => res.send(`<h1>Reader TTS Engine</h1>`))
 
-router.get('/read', async ({ query: { text } }, res) => {
-  const output = await read(text)
+router.get('/say', async ({ query: { text } }, res) => {
+  const output = await say(text)
 
   return res.send(`
     <label>${output}</label>

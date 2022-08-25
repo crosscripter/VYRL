@@ -10,9 +10,10 @@ const { SERVER_HOST, SERVER_PORT } = process.env
 const SERVER_URL = `${SERVER_HOST}:${SERVER_PORT}`
 
 app.use(express.static('./server/public'))
-app.use('/pexels', require('./pexels'))
-app.use('/editor', require('./editor'))
-app.use('/reader', require('./reader'))
+app.use('/edit', require('./editor'))
+app.use('/tts', require('./reader'))
+app.use('/video', require('./downloader/video'))
+app.use('/audio', require('./downloader/audio'))
 
 app.get('/', (_, res) => res.send(`<h1><tt>VYRL Server</tt></h1>`))
 

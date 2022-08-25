@@ -1,4 +1,5 @@
 const { log } = require('../logger')
+const { parse } = require('path')
 const { unlinkSync } = require('fs')
 const { resolveFiles, tempName } = require('../utils')
 
@@ -72,7 +73,6 @@ const concatAV = async (files) => {
     '0:v',
     '-map',
     '1:a',
-    '-shortest',
   ])
   log(
     `ffmpeg: Audio track ${audio} added to ${video} video as ${out} successfully`
@@ -117,6 +117,20 @@ const watermark = async (files) => {
   )
 }
 
+const wav2mp3 = async (wav) => {
+  log(`ffmpeg: Converting ${wav} into mp3...`)
+  const out = tempName('mp3')
+
+  return await new Promise((resolve, reject) => {
+    ffmpeg(wav)
+      .addInput(wav)
+      .output(out)
+      .on('end', () => resolve(out))
+      .on('error', (e) => reject(e))
+      .run()
+  })
+}
+
 module.exports = {
   concatmp3,
   concatmp4,
@@ -124,4 +138,5 @@ module.exports = {
   voiceOver,
   subtitle,
   watermark,
+  wav2mp3,
 }
