@@ -67,12 +67,13 @@ const concatAV = async (files) => {
   log(`ffmpeg: Adding audio ${audio} to video ${video}...`)
   const names = resolveFiles(files)
   const out = await _ffmpeg(names, 'mp4', [
-    '-c',
+    '-c:v',
     'copy',
-    '-map',
-    '0:v',
-    '-map',
-    '1:a',
+    '-c:a',
+    'copy',
+    '-codec',
+    'copy',
+    '-shortest',
   ])
   log(
     `ffmpeg: Audio track ${audio} added to ${video} video as ${out} successfully`
@@ -93,7 +94,12 @@ const voiceOver = async (files) => {
 const subtitle = async (files) => {
   const names = resolveFiles(files)
   const [video, subtitle] = names
-  return await _ffmpeg([video], 'mp4', ['-vf', `subtitles=${subtitle}`])
+  // return await _ffmpeg([video], 'mp4', [
+  //   '-vf',
+  //   `subtitles=${subtitle}`,
+  //   '-codec',
+  //   'copy',
+  // ])
 
   return await _ffmpeg([video, subtitle], 'mp4', [
     '-c',
