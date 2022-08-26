@@ -1,6 +1,7 @@
 require('dotenv').config()
 const express = require('express')
 const { log } = require('./logger')
+const { produce } = require('./producer')
 
 app = express()
 app.use(express.json())
@@ -17,7 +18,17 @@ app.use('/audio', require('./downloader/audio'))
 
 app.get('/', (_, res) => res.send(`<h1><tt>VYRL Server</tt></h1>`))
 
-app.listen(3000, () => {
+app.listen(3000, async () => {
   console.clear()
   log(`Server launched at ${SERVER_URL} 🚀`)
+
+  await produce({
+    video: 'mtn.mp4',
+    videoTitle: 'Drone Mountain Footage',
+    videoCredits: 'Stephano Rinaldo',
+    song: 'cinematic.mp3',
+    songTitle: 'Cinematic Documentary',
+    songCredits: 'Lexin_Music at Pixabay',
+    transcript: 'Hangliding is fun!',
+  })
 })

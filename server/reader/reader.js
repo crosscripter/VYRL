@@ -2,12 +2,20 @@ const say = require('say')
 const { parse } = require('path')
 const { log } = require('../logger')
 const { wav2mp3 } = require('../editor/ffmpeg')
+const { readFileSync, writeFileSync } = require('fs')
 
 const base = './server/public'
 const tempName = (ext) =>
   `${base}/${Math.random().toString(13).slice(2)}.${ext}`
 
-module.exports.say = async (text) => {
+const transcribe = (audio) => {
+  const out = tempName('srt')
+  const text = readFileSync(`${base}/transcript.srt`, 'utf8')
+  writeFileSync(out, text, 'utf8')
+  return out
+}
+
+const _say = async (text) => {
   log('tts: saying "' + text + '"...')
   let output = tempName('wav')
 
@@ -24,3 +32,5 @@ module.exports.say = async (text) => {
     })
   })
 }
+
+module.exports = { say: _say, transcribe }

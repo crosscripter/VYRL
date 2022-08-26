@@ -13,9 +13,9 @@ const _ffmpeg = async (inputs, ext, options = [], filter = null) => {
     inputs = Array.isArray(inputs) ? inputs : [inputs]
 
     log(
-      `ffmpeg ${inputs.map((i) => `-i ${i}`).join(' ')} ${options.join(' ')} ${
-        filter ? `-filter_complex="${filter}"` : ''
-      } ${out}`
+      `\nffmpeg ${inputs.map((i) => `-i ${i}`).join(' ')} ${options.join(
+        ' '
+      )} ${filter ? `-filter_complex="${filter}"` : ''} ${out}\n`
     )
 
     let $ffmpeg = ffmpeg()
@@ -94,12 +94,7 @@ const voiceOver = async (files) => {
 const subtitle = async (files) => {
   const names = resolveFiles(files)
   const [video, subtitle] = names
-  // return await _ffmpeg([video], 'mp4', [
-  //   '-vf',
-  //   `subtitles=${subtitle}`,
-  //   '-codec',
-  //   'copy',
-  // ])
+  return await _ffmpeg([video], 'mp4', ['-vf', `subtitles=${subtitle}`])
 
   return await _ffmpeg([video, subtitle], 'mp4', [
     '-c',
@@ -118,9 +113,44 @@ const watermark = async (files) => {
     'mp4',
     ['-c:a', 'copy'],
     `[1][0]scale2ref=w=oh*mdar:h=ih*0.1[logo][video];` +
-      `[video][logo]overlay=W-w-5:5:enable='gte(t,5)':format=auto,format=yuv420p;` +
+      `[video][logo]overlay=10:5:enable='gte(t,5)':format=auto,format=yuv420p;` +
       `[1]format=rgba,colorchannelmixer=aa=0.5[1]`
   )
+}
+
+const caption = async (inputs) => {
+  const [video, videoTitle, videoCredits, songTitle, songCredits] = inputs
+  const name = resolveFiles([video])
+  log(
+    `ffmpeg: Adding caption "${videoTitle}\n${videoCredits}\n\n${songTitle}\n${songCredits}" to video ${video}...`
+  )
+
+  const drawText = (text, x, y, size = 24, font = 'verdana', color = 'white') =>
+    `drawtext=font=${font}:text='${text}':fontcolor=${color}:fontsize=${size}:x=${x}:y=h-th-${y}`
+
+  const x = 20
+
+  const filter = [
+    drawText(`${videoTitle}`, x, 140),
+    drawText(`${videoCredits}`, x, 120, 20),
+    drawText(`${songTitle}`, x, 80, 22),
+    drawText(`${songCredits}`, x, 60, 20),
+  ].join(',')
+
+  return await _ffmpeg(name, 'mp4', ['-codec:a', 'copy'], filter)
+}
+
+const loop = async (video, secs) => {
+  // ffmpeg -stream_loop -1 -i input.mp4 -c copy output.mp4
+  const input = resolveFiles([video])
+  return await _ffmpeg(input, 'mp4', [
+    '-stream-loop',
+    '-1',
+    '-c',
+    'copy',
+    '-t',
+    '' + secs,
+  ])
 }
 
 const wav2mp3 = async (wav) => {
@@ -145,4 +175,6 @@ module.exports = {
   subtitle,
   watermark,
   wav2mp3,
+  caption,
+  loop,
 }

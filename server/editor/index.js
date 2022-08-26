@@ -38,4 +38,9 @@ router.get('/watermark', async ({ query: { files } }, res) => {
   return res.send(htmlMedia('video', out))
 })
 
+router.get('/caption', async ({ query: { inputs } }, res) => {
+  const out = await ffmpeg.caption(inputs.split(','))
+  return res.send(htmlMedia('video', out))
+})
+
 module.exports = router
