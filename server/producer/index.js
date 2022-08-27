@@ -1,3 +1,4 @@
+const chalk = require('chalk')
 const { log } = require('../logger')
 const { say, transcribe } = require('../reader/reader')
 const {
@@ -22,19 +23,12 @@ const produce = async ({
   songCredits,
   transcript,
 }) => {
-  log(`produce: Producing video "${videoTitle}"...`)
+  log(chalk`produce: {yellow {bold WAIT}} Producing video "${videoTitle}"...`)
 
-  log(`produce: Watermarking video...`)
+  log(chalk`produce: {yellow {bold WAIT}} Watermarking video...`)
   video = await watermark([video, WATERMARK])
 
-  log(`produce: Generating voice over...`)
-  const speech = await say(transcript)
-  let audio = await voiceOver([song, speech])
-
-  log(`produce: Mixing audio...`)
-  video = await concatAV([video, audio])
-
-  log(`produce: Adding captions...`)
+  log(chalk`produce: {yellow {bold WAIT}} Adding captions...`)
   video = await caption([
     video,
     videoTitle,
@@ -43,14 +37,21 @@ const produce = async ({
     songCredits,
   ])
 
-  log(`produce: Adding subtitles...`)
+  log(`produce: {yellow {bold WAIT}} Adding intro and outro...`)
+  video = await concatmp4([INTRO, video, OUTRO])
+
+  log(chalk`produce: {yellow {bold WAIT}} Generating voice over...`)
+  const speech = await say(transcript)
+  let audio = await voiceOver([song, speech])
+
+  log(chalk`produce: {yellow {bold WAIT}} Mixing audio...`)
+  video = await concatAV([video, audio])
+
+  log(chalk`produce: {yellow {bold WAIT}} Adding subtitles...`)
   const subtitles = await transcribe(transcript)
   video = await subtitle([video, subtitles])
 
-  log(`produce: Adding intro and outro...`)
-  video = await concatmp4([INTRO, video, OUTRO])
-
-  log(`produce: Video produced at ${video}`)
+  log(chalk`{green {bold DONE}} video ${videoTitle} produced at ${video}`)
   return video
 }
 

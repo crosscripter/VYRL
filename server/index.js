@@ -29,6 +29,10 @@ app.listen(3000, async () => {
     song: 'cinematic.mp3',
     songTitle: 'Cinematic Documentary',
     songCredits: 'Lexin_Music at Pixabay',
-    transcript: 'Hangliding is fun!',
+    transcript: `
+    This is a test of the voiceover capabilities of the VIRAL Audio engine.
+    This powerful text-to-speech engine can automatically generate MP3 audio tracks from textual input.
+    Meaning, that the audio you are hearing right now, was produced entirely by code!
+    `,
   })
 })
