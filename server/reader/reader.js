@@ -20,7 +20,7 @@ const _say = async (text) => {
   let output = tempName('wav')
 
   return new Promise((res, rej) => {
-    say.export(text, null, 1.0, output, async (err) => {
+    say.export(text, 'Microsoft Zira Desktop', 1.0, output, async (err) => {
       if (err) {
         log('tts error', err)
         return rej(err)

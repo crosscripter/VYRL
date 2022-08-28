@@ -1,4 +1,8 @@
 const chalk = require('chalk')
+const _ = require('underscore')
+const pexels = require('../downloader/pexels')
+const pixabay = require('../downloader/pixabay')
+
 const { log } = require('../logger')
 const { say, transcribe } = require('../reader/reader')
 const {
@@ -8,6 +12,8 @@ const {
   caption,
   subtitle,
   concatmp4,
+  reframe,
+  loop,
 } = require('../editor/ffmpeg')
 
 const INTRO = 'intro2.mp4'
@@ -28,31 +34,108 @@ const produce = async ({
   log(chalk`produce: {yellow {bold WAIT}} Watermarking video...`)
   video = await watermark([video, WATERMARK])
 
-  log(chalk`produce: {yellow {bold WAIT}} Adding captions...`)
-  video = await caption([
-    video,
-    videoTitle,
-    videoCredits,
-    songTitle,
-    songCredits,
-  ])
+  if (videoTitle || videoCredits || songTitle || songCredits) {
+    log(chalk`produce: {yellow {bold WAIT}} Adding captions...`)
+    video = await caption([
+      video,
+      videoTitle,
+      videoCredits,
+      songTitle,
+      songCredits,
+    ])
+  }
 
   log(`produce: {yellow {bold WAIT}} Adding intro and outro...`)
   video = await concatmp4([INTRO, video, OUTRO])
 
-  log(chalk`produce: {yellow {bold WAIT}} Generating voice over...`)
-  const speech = await say(transcript)
-  let audio = await voiceOver([song, speech])
+  let audio
+  if (transcript) {
+    log(chalk`produce: {yellow {bold WAIT}} Generating voice over...`)
+    const speech = await say(transcript)
+    audio = await voiceOver([song, speech])
+  } else {
+    audio = song
+  }
 
   log(chalk`produce: {yellow {bold WAIT}} Mixing audio...`)
   video = await concatAV([video, audio])
 
-  log(chalk`produce: {yellow {bold WAIT}} Adding subtitles...`)
-  const subtitles = await transcribe(transcript)
-  video = await subtitle([video, subtitles])
+  if (transcript) {
+    log(chalk`produce: {yellow {bold WAIT}} Adding subtitles...`)
+    const subtitles = await transcribe(transcript)
+    video = await subtitle([video, subtitles])
+  }
 
   log(chalk`{green {bold DONE}} video ${videoTitle} produced at ${video}`)
   return video
 }
 
-module.exports = { produce }
+const generate = async (visuals, genre) => {
+  log(
+    chalk`generate: {yellow {bold WAIT}} Generating "${visuals}" video with "${genre}" music...`
+  )
+
+  //Audio
+  log(
+    chalk`generate: {yellow {bold WAIT}} Searching Pixabay for "${genre}" tracks...`
+  )
+  const raudio = _.sample(await pixabay.search(genre))
+  const { name: songTitle, href } = raudio
+  const songCredits = '@Anonymous at Pixabay'
+
+  log(
+    chalk`generate: {yellow {bold WAIT}} Found audio "${songTitle}" by "${songCredits}" at\n${href}`
+  )
+  const song = await pexels.download(raudio.href)
+  log(
+    chalk`generate: {yellow {bold WAIT}} Downloaded audio "${songTitle}" by "${songCredits}" from ${href} to ${song}`
+  )
+
+  // Video
+  log(
+    chalk`generate: {yellow {bold WAIT}} Searching Pexels for "${visuals}" videos..`
+  )
+  const rvideos = _.sample(await pexels.search(visuals, 10), 3)
+
+  const cvideos = await Promise.all(
+    rvideos.map(async (rvideo, i) => {
+      log('rvideo', i, JSON.stringify(rvideo))
+      const { name: videoTitle, url, video } = rvideo
+      const videoCredits = rvideo.name
+
+      log(
+        chalk`generate: {yellow {bold WAIT}} Found video "${videoTitle}" by "${videoCredits}" at\n${video}`
+      )
+      let videoFile = await pexels.download(rvideo.video)
+      log(
+        chalk`generate: {yellow {bold WAIT}} Downloaded video "${videoTitle}" by "${videoCredits}" from ${video} to ${videoFile} `
+      )
+
+      videoFile = await caption([
+        videoFile,
+        videoTitle,
+        videoCredits,
+        songTitle,
+        songCredits,
+      ])
+
+      videoFile = await loop(video, 120)
+      return videoFile
+    })
+  )
+
+  log('cvideos=', JSON.stringify(cvideos))
+  const videoFile = await concatmp4(cvideos)
+
+  return await produce({
+    video: videoFile,
+    videoTitle: '',
+    videoCredits: '',
+    song,
+    songTitle: '',
+    songCredits: '',
+    transcript: '',
+  })
+}
+
+module.exports = { produce, generate }

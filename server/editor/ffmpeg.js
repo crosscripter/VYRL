@@ -140,17 +140,28 @@ const caption = async (inputs) => {
   return await _ffmpeg(name, 'mp4', ['-codec:a', 'copy'], filter)
 }
 
+const reframe = async (video, fps) => {
+  log(`ffmpeg: Adjusting frame rate to ${fps}...`)
+  const name = resolveFiles([video])
+  return await _ffmpeg(name, 'mp4', ['-filter:v', 'setpts=2.0*PTS'])
+}
+
 const loop = async (video, secs) => {
   // ffmpeg -stream_loop -1 -i input.mp4 -c copy output.mp4
   const input = resolveFiles([video])
-  return await _ffmpeg(input, 'mp4', [
-    '-stream-loop',
-    '-1',
-    '-c',
-    'copy',
-    '-t',
-    '' + secs,
-  ])
+  const out = tempName('mp4')
+  log('input', input, out)
+
+  return await new Promise((resolve, reject) => {
+    ffmpeg()
+      .addInput(video)
+      .inputOptions('-stream_loop', '-1')
+      .outputOptions('-c', 'copy', '-t', secs)
+      .output(out)
+      .on('end', () => resolve(out))
+      .on('error', (e) => reject(e))
+      .run()
+  })
 }
 
 const wav2mp3 = async (wav) => {
@@ -177,4 +188,5 @@ module.exports = {
   wav2mp3,
   caption,
   loop,
+  reframe,
 }

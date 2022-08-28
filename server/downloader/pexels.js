@@ -1,8 +1,9 @@
 require('dotenv').config()
 const axios = require('axios')
 const { log } = require('../logger')
+const { tempName } = require('../utils')
 const { createClient } = require('pexels')
-const { basename, resolve } = require('path')
+const { basename, parse } = require('path')
 const { createWriteStream, existsSync } = require('fs')
 
 const { PEXELS_API_KEY } = process.env
@@ -10,7 +11,8 @@ const client = createClient(PEXELS_API_KEY)
 
 const download = async (url) => {
   const fileName = basename(url).split('?')[0].trim()
-  const localFilePath = resolve('./server/public', fileName)
+  const ext = parse(fileName).ext.slice(1)
+  const localFilePath = tempName(ext) // join('./server/public', fileName)
 
   if (existsSync(localFilePath)) {
     log('file', localFilePath, 'exists')

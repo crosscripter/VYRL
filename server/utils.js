@@ -11,4 +11,8 @@ const resolveFiles = (files) =>
     return `${ASSET_BASE}/${f}`
   })
 
-module.exports = { resolveFiles, tempName }
+const random = (items) => {
+  return items[0]
+}
+
+module.exports = { resolveFiles, tempName, random }
