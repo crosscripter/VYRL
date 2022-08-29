@@ -73,7 +73,6 @@ const concatAV = async (files) => {
     '0:v',
     '-map',
     '1:a',
-    '-shortest',
   ])
   log(
     `ffmpeg: Audio track ${audio} added to ${video} video as ${out} successfully`

@@ -11,6 +11,7 @@ const {
   watermark,
   caption,
   subtitle,
+  concatmp3,
   concatmp4,
   reframe,
   loop,
@@ -138,4 +139,40 @@ const generate = async (visuals, genre) => {
   })
 }
 
-module.exports = { produce, generate }
+const getItems =
+  (type, service, prop, concat) => async (query, count, duration) => {
+    log(chalk`Finding ${count} ${query} ${type}s of ${duration}s....`)
+    const items = _.sample(await service.search(query, count), count)
+    if (!items.length) throw `No ${type} found for ` + query
+    log(chalk`Found ${items.length} item(s): ${JSON.stringify(items)}`)
+
+    const files = await Promise.all(
+      items.map(async (item) => {
+        log(chalk`Downloading ${item[prop]}...`)
+        let file = await pexels.download(item[prop])
+        log(chalk`Downloaded ${item[prop]} to ${file}...`)
+        file = await loop(file, duration)
+        return file
+      })
+    )
+
+    const [first, ...rest] = files
+    const result = await concat([first, ...rest])
+    log(chalk`${type} result: ${result}`)
+    return result
+  }
+
+const getVideos = getItems('video', pexels, 'video', concatmp4)
+
+const getAudios = getItems('audio', pixabay, 'href', concatmp3)
+
+const rainVideo = async (duration) => {
+  log(chalk`Generating rain video of ${duration}s...`)
+  let video = await getVideos('rain', 50, 60)
+  log('\n\nvideo', video)
+  let audio = await getAudios('chill', 20, 60)
+  log('\n\naudio', audio)
+  return await concatAV([video, audio])
+}
+
+module.exports = { produce, generate, rainVideo }
