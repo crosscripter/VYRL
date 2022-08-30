@@ -102,9 +102,10 @@ const getAudios = async (spec) => {
 
 const generateCaptions = (duration, videos, audios) => {
   const captions = []
+
   const getItemAt = (items, at) => {
     let start = 0
-    const index = items.findIndexOf(({ duration }) => duration >= at) ?? 0
+    const index = items.findIndex(({ duration }) => duration >= at) ?? 0
     items
       .filter((item, i) => i <= index)
       .map(({ duration }) => (start += duration))
@@ -114,15 +115,19 @@ const generateCaptions = (duration, videos, audios) => {
   const addCaption = (changed, ...items) => {
     const [video, audio] = items
     captions.push({
-      start: items[changed].start * 1000, // from * 1000,
-      end: (items[changed].start + 5) * 1000, // to * 1000,
+      start: (items[changed].start + 3) * 1000, // from * 1000,
+      end: (items[changed].start + 6) * 1000, // to * 1000,
       text:
-        `{\\an1} <font size="12px">"<b>${video.name}</b>"<br/><i>by ${video.artist} at Pexels</i><font/>` +
-        `<br/><br/><font size="11px"><b>"${audio.name}"</b><br/><i>by ${audio.artist} at Pixabay</i></font>`,
+        `{\\an1} <font size="12px"><b>${video.name ?? 'Video'}</b><br/><i>by ${
+          video.artist
+        } at Pexels</i><font/>` +
+        `<br/><br/><font size="11px"><b>"${
+          audio.name ?? 'Music'
+        }"</b><br/><i>by ${audio.artist} at Pixabay</i></font>`,
     })
   }
 
-  let _s = 5,
+  let _s = 0,
     _video,
     _audio
 
@@ -166,13 +171,14 @@ const produce = async (spec) => {
   audio = await concatmp3(audio)
   // audio = await fade({ file: audio, duration })
 
+  const captions = await generateCaptions(duration, videos, audios)
+  video = await subtitle([video, captions])
   const outro = await fade({ file: OUTRO, duration: 7 })
+  video = await watermark([video, WATERMARK])
   video = await concatmp4([INTRO, video, outro])
   audio = await loop(audio, duration + 12)
   video = await concatAV([video, audio])
 
-  const captions = await generateCaptions(duration, videos, audios)
-  video = await subtitle([video, captions])
   return log(video)
 }
 
