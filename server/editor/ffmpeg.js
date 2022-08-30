@@ -90,17 +90,26 @@ const voiceOver = async (files) => {
   )
 }
 
+const fade = async ({ file, duration }) => {
+  const [name] = resolveFiles([file])
+  const ext = parse(name).ext.slice(1).trim()
+  return await _ffmpeg(name, ext, [
+    '-vf',
+    `fade=t=in:st=0:d=3,fade=t=out:st=${duration - 3}:d=3`,
+  ])
+}
+
 const subtitle = async (files) => {
   const names = resolveFiles(files)
   const [video, subtitle] = names
-  // return await _ffmpeg([video], 'mp4', ['-vf', `subtitles=${subtitle}`])
+  return await _ffmpeg([video], 'mp4', ['-vf', `subtitles=${subtitle}`])
 
-  return await _ffmpeg([video, subtitle], 'mp4', [
-    '-c',
-    'copy',
-    '-c:s',
-    'mov_text',
-  ])
+  // return await _ffmpeg([video, subtitle], 'mp4', [
+  //   '-c',
+  //   'copy',
+  //   '-c:s',
+  //   'mov_text',
+  // ])
 }
 
 const watermark = async (files) => {
@@ -124,16 +133,16 @@ const caption = async (inputs) => {
     `ffmpeg: Adding caption "${videoTitle}\n${videoCredits}\n\n${songTitle}\n${songCredits}" to video ${video}...`
   )
 
-  const drawText = (text, x, y, size = 24, font = 'verdana', color = 'white') =>
+  const drawText = (text, x, y, size = 42, font = 'verdana', color = 'white') =>
     `drawtext=font=${font}:text='${text}':fontcolor=${color}:fontsize=${size}:x=${x}:y=h-th-${y}`
 
   const x = 20
 
   const filter = [
-    drawText(`${videoTitle}`, x, 140),
-    drawText(`${videoCredits}`, x, 120, 20),
-    drawText(`${songTitle}`, x, 80, 22),
-    drawText(`${songCredits}`, x, 60, 20),
+    drawText(`${videoTitle}`, x, 180),
+    drawText(`${videoCredits}`, x, 160, 40),
+    drawText(`${songTitle}`, x, 120, 42),
+    drawText(`${songCredits}`, x, 100, 40),
   ].join(',')
 
   return await _ffmpeg(name, 'mp4', ['-codec:a', 'copy'], filter)
@@ -145,15 +154,15 @@ const reframe = async (video, fps) => {
   return await _ffmpeg(name, 'mp4', ['-filter:v', 'setpts=2.0*PTS'])
 }
 
-const loop = async (video, secs) => {
+const loop = async (file, secs) => {
   // ffmpeg -stream_loop -1 -i input.mp4 -c copy output.mp4
-  const input = resolveFiles([video])
-  const out = tempName('mp4')
+  const [input] = resolveFiles([file])
+  const out = tempName(parse(file).ext.slice(1))
   log('input', input, out)
 
   return await new Promise((resolve, reject) => {
     ffmpeg()
-      .addInput(video)
+      .addInput(input)
       .inputOptions('-stream_loop', '-1')
       .outputOptions('-c', 'copy', '-t', secs)
       .output(out)
@@ -188,4 +197,5 @@ module.exports = {
   caption,
   loop,
   reframe,
+  fade,
 }

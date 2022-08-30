@@ -2,7 +2,7 @@ require('dotenv').config()
 const express = require('express')
 const { loop } = require('./editor/ffmpeg')
 const { log } = require('./logger')
-const { produce, generate, rainVideo } = require('./producer')
+const { produce, generate, rainVideo, video } = require('./producer')
 
 app = express()
 app.use(express.json())
@@ -43,5 +43,25 @@ app.listen(3000, async () => {
   // log(`Generating random video of a ${visuals} with ${genre} music...`)
   // await generate(visuals, genre)
 
-  await rainVideo(120)
+  // await rainVideo()
+
+  // await video({
+  //   video: {
+  //     file: 'waterfall.mp4',
+  //     author: 'Engin Akyurt',
+  //     title: 'Beauty of Waterfalls',
+  //   },
+  //   audio: {
+  //     file: 'brady.mp3',
+  //     author: 'Kevin MacLeod',
+  //     title: 'A Very Brady Special',
+  //   },
+  //   duration: 60,
+  // })
+
+  await produce({
+    duration: 60, // 60s
+    video: { theme: 'stars' },
+    audio: { genre: 'relaxing' },
+  })
 })

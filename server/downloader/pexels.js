@@ -44,13 +44,35 @@ const search = async (query, per_page) => {
   log('Searching for', query, 'videos on Pexel...')
   const { videos } = await client.videos.search({ query, per_page })
 
-  return videos.map(({ image, user: { name, url }, video_files }) => {
-    const hdfiles = video_files.filter(
-      ({ file_type, quality }) => file_type === 'video/mp4' && quality === 'hd'
-    )
-    const hqfile = hdfiles.slice(-1)[0]
-    return { image, url, name, video: hqfile.link }
-  })
+  return videos
+    .map((result) => {
+      const {
+        duration,
+        url,
+        width,
+        user: { name },
+        video_files,
+      } = result
+      // log(JSON.stringify(result))
+      if (width < 1920) return null
+
+      const hdfiles = video_files.filter(
+        ({ file_type, quality, width }) =>
+          file_type === 'video/mp4' && quality === 'hd'
+      )
+
+      const title = url
+        .slice(0, -2)
+        .split('/')
+        .slice(-1)[0]
+        .split('-')
+        .slice(0, -1)
+        .join(' ')
+
+      const hqfile = hdfiles.slice(-1)[0]
+      return { url, title, duration, name, video: hqfile.link }
+    })
+    .filter(Boolean)
 }
 
 module.exports = { search, download }

@@ -3,7 +3,7 @@ const { log } = require('./logger')
 const { ASSET_BASE } = process.env
 
 const tempName = (ext) =>
-  `${ASSET_BASE}/${Math.random().toString(13).slice(2)}.${ext}`
+  `${ASSET_BASE}/${Math.random().toString(13).slice(2)}.temp.${ext}`
 
 const resolveFiles = (files) =>
   files.map((f) => {
