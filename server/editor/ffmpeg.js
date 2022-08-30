@@ -98,7 +98,7 @@ const fade = async ({ file, duration }) => {
   const ext = parse(name).ext.slice(1).trim()
   return await _ffmpeg(name, ext, [
     `-vf`,
-    `fade=t=in:st=0:d=3,fade=t=out:st=${duration - 3}:d=3`,
+    `fade=t=in:st=0:d=1,fade=t=out:st=${+duration - 1}:d=1`,
   ])
 }
 

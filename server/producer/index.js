@@ -102,17 +102,25 @@ const getAudios = async (spec) => {
 
 const generateCaptions = (duration, videos, audios) => {
   const captions = []
-  const getItemAt = (items, at) =>
-    items.find(({ duration }) => duration >= at) ?? items[0]
+  const getItemAt = (items, at) => {
+    let start = 0
+    const index = items.findIndexOf(({ duration }) => duration >= at) ?? 0
+    items
+      .filter((item, i) => i <= index)
+      .map(({ duration }) => (start += duration))
+    return { ...items[index], start }
+  }
 
-  const addCaption = (from, to, video, audio) =>
+  const addCaption = (changed, ...items) => {
+    const [video, audio] = items
     captions.push({
-      start: from * 1000,
-      end: to * 1000,
+      start: items[changed].start * 1000, // from * 1000,
+      end: (items[changed].start + 5) * 1000, // to * 1000,
       text:
         `{\\an1} <font size="12px">"<b>${video.name}</b>"<br/><i>by ${video.artist} at Pexels</i><font/>` +
         `<br/><br/><font size="11px"><b>"${audio.name}"</b><br/><i>by ${audio.artist} at Pixabay</i></font>`,
     })
+  }
 
   let _s = 5,
     _video,
@@ -122,11 +130,11 @@ const generateCaptions = (duration, videos, audios) => {
     const video = getItemAt(videos, s)
     const audio = getItemAt(audios, s)
     if (video !== _video) {
-      addCaption(_s, s, video, audio)
+      addCaption(0, video, audio)
       _video = video
     }
     if (audio !== _audio) {
-      addCaption(_s, s, video, audio)
+      addCaption(1, video, audio)
       _audio = audio
     }
     _s = s
@@ -140,25 +148,32 @@ const generateCaptions = (duration, videos, audios) => {
 }
 
 const produce = async (spec) => {
+  const { duration } = spec
   const { audios } = await getAudios(spec)
   const { videos } = await getVideos(spec)
-  const fvideos = await Promise.all(
-    videos.map(async (video) => await fade(video))
+
+  let video = await Promise.all(
+    videos.map(async ({ file, duration }) => await fade({ file, duration }))
   )
-  const faudios = await Promise.all(
-    audios.map(async (audio) => await fade(audio))
+  let audio = await Promise.all(
+    audios.map(async ({ file, duration }) => await fade({ file, duration }))
   )
-  const cvideos = await concatmp4(fvideos)
-  const caudios = await concatmp3(faudios)
-  const lvideo = await loop(cvideos, spec.duration)
-  const wvideo = await watermark([lvideo, WATERMARK])
-  const videoOut = await concatmp4([INTRO, wvideo, OUTRO])
-  const audioOut = await loop(caudios, spec.duration)
-  const mediaOut = await concatAV([videoOut, audioOut])
-  const captions = await generateCaptions(spec.duration, videos, audios)
-  const result = await subtitle([mediaOut, captions])
-  log('video produced', result)
-  return result
+
+  video = await concatmp4(video)
+  video = await loop(video, duration)
+  video = await fade({ file: video, duration })
+
+  audio = await concatmp3(audio)
+  // audio = await fade({ file: audio, duration })
+
+  const outro = await fade({ file: OUTRO, duration: 7 })
+  video = await concatmp4([INTRO, video, outro])
+  audio = await loop(audio, duration + 12)
+  video = await concatAV([video, audio])
+
+  const captions = await generateCaptions(duration, videos, audios)
+  video = await subtitle([video, captions])
+  return log(video)
 }
 
 // const produce = async ({
