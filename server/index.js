@@ -60,7 +60,7 @@ app.listen(3000, async () => {
   // })
 
   await produce({
-    duration: 60, // 60s
+    duration: 10, // 60s
     video: { theme: 'stars' },
     audio: { genre: 'relaxing' },
   })

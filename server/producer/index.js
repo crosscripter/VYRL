@@ -107,14 +107,14 @@ const generateCaptions = (duration, videos, audios) => {
 
   const addCaption = (from, to, video, audio) =>
     captions.push({
-      start: from + _s * 1000,
-      end: (to + _s + 5) * 1000,
+      start: from * 1000,
+      end: to * 1000,
       text:
         `{\\an1} <font size="12px">"<b>${video.name}</b>"<br/><i>by ${video.artist} at Pexels</i><font/>` +
         `<br/><br/><font size="11px"><b>"${audio.name}"</b><br/><i>by ${audio.artist} at Pixabay</i></font>`,
     })
 
-  let _s = 0,
+  let _s = 5,
     _video,
     _audio
 
@@ -150,7 +150,9 @@ const produce = async (spec) => {
   )
   const cvideos = await concatmp4(fvideos)
   const caudios = await concatmp3(faudios)
-  const videoOut = await loop(cvideos, spec.duration)
+  const lvideo = await loop(cvideos, spec.duration)
+  const wvideo = await watermark([lvideo, WATERMARK])
+  const videoOut = await concatmp4([INTRO, wvideo, OUTRO])
   const audioOut = await loop(caudios, spec.duration)
   const mediaOut = await concatAV([videoOut, audioOut])
   const captions = await generateCaptions(spec.duration, videos, audios)

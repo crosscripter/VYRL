@@ -61,6 +61,9 @@ const concatMedia = (ext, options) => async (files) => {
 const concatmp3 = concatMedia('mp3', ['-acodec', 'copy'])
 
 const concatmp4 = concatMedia('mp4', ['-c', 'copy', '-bsf:a', 'aac_adtstoasc'])
+// "[0:v]scale=640:480:force_original_aspect_ratio=decrease,pad=640:480:(ow-iw)/2:(oh-ih)/2[v0]; \
+//  [v0][0:a][1:v][1:a]concat=n=2:v=1:a=1[v][a]" \
+// -map "[v]" -map "[a]" -c:v libx264 -c:a aac -movflags +faststart
 
 const concatAV = async (files) => {
   const [video, audio] = files
@@ -94,7 +97,7 @@ const fade = async ({ file, duration }) => {
   const [name] = resolveFiles([file])
   const ext = parse(name).ext.slice(1).trim()
   return await _ffmpeg(name, ext, [
-    '-vf',
+    `-vf`,
     `fade=t=in:st=0:d=3,fade=t=out:st=${duration - 3}:d=3`,
   ])
 }
@@ -103,13 +106,6 @@ const subtitle = async (files) => {
   const names = resolveFiles(files)
   const [video, subtitle] = names
   return await _ffmpeg([video], 'mp4', ['-vf', `subtitles=${subtitle}`])
-
-  // return await _ffmpeg([video, subtitle], 'mp4', [
-  //   '-c',
-  //   'copy',
-  //   '-c:s',
-  //   'mov_text',
-  // ])
 }
 
 const watermark = async (files) => {
@@ -155,7 +151,6 @@ const reframe = async (video, fps) => {
 }
 
 const loop = async (file, secs) => {
-  // ffmpeg -stream_loop -1 -i input.mp4 -c copy output.mp4
   const [input] = resolveFiles([file])
   const out = tempName(parse(file).ext.slice(1))
   log('input', input, out)

@@ -53,8 +53,8 @@ const search = async (query, per_page) => {
         user: { name },
         video_files,
       } = result
-      // log(JSON.stringify(result))
-      if (width < 1920) return null
+
+      if (duration < 10 || width < 1920) return null
 
       const hdfiles = video_files.filter(
         ({ file_type, quality, width }) =>
