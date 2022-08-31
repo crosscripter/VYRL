@@ -9,6 +9,7 @@ ffmpeg.setFfmpegPath(ffmpegPath)
 
 const filters = {
   REFRAME: scale => `setpts=${scale}*PTS`,
+  FADE: duration => `fade=t=in:st=0:d=2,fade=t=out:st=${+duration - 2}:d=2`,
   VOICEOVER: '[0:0]volume=0.3[a];[1:0]volume=2.0[b];[a][b]amix=inputs=2:duration=longest',
   DRAWTEXT: ([text, y, size = 42]) => `drawtext=font=verdana:text='${text}':fontcolor=white:fontsize=${size}:x=20:y=h-th-${y}`,
   WATERMARK: `[1][0]scale2ref=w=oh*mdar:h=ih*0.09[logo][video];` +
@@ -75,9 +76,9 @@ const concatAV = async (files) => {
 const fade = async ({ file, duration }) => {
   const ext = fileExt(file)
   const type = ext === 'mp4' ? 'v' : 'a'
-  let cmd = `fade=t=in:st=0:d=2,fade=t=out:st=${+duration - 2}:d=2`
-  cmd = type === 'a' ? cmd.replace(/fade/g, 'afade') : cmd
-  return await _ffmpeg(file, ext, [ `-${type}f`, cmd ])
+  let filter = filters.FADE(duration)
+  filter = type === 'a' ? filter.replace(/fade/g, 'afade') : filter
+  return await _ffmpeg(file, ext, [ `-${type}f`, filter ])
 }
 
 const concatMedia = (ext, options) => async (files) => {
