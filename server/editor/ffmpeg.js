@@ -22,12 +22,14 @@ const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions) => {
     const out = tempName(ext)
     inputs = resolveFiles(Array.isArray(inputs) ? inputs : [inputs])
     
-    log(
-      `\nffmpeg ${inputOptions?.join(' ')} ${inputs.map((i) => `-i ${i}`).join(' ')} ${outputOptions?.join(
-        ' '
-      )} ${filter ? `-filter_complex="${filter}"` : ''} ${out}\n`
-    )
-
+    log('ffmpeg', 
+        ...inputOptions, 
+        ...inputs.map(i => `-i ${i}`), 
+        ...outputOptions, 
+        filter ? `-filter_complex="${filter}"` : '', 
+        out
+     )
+    
     let $ffmpeg = ffmpeg()
     if (inputOptions) $ffmpeg = $ffmpeg.inputOptions(...inputOptions)
 
