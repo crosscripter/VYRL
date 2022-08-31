@@ -1,10 +1,7 @@
 require('dotenv').config()
 const axios = require('axios')
 const { log } = require('../logger')
-const { basename } = require('path')
 const { createClient } = require('pexels')
-const { createWriteStream } = require('fs')
-const { fileExt, tempName } = require('../utils')
 
 const { PEXELS_API_KEY } = process.env
 const client = createClient(PEXELS_API_KEY)
