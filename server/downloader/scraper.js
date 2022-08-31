@@ -1,7 +1,7 @@
 const { log } = require('../logger')
 const puppeteer = require('puppeteer')
 
-const scrape = async (url, genre = 'beautiful plays') => {
+const scrapeTracks = async (url, genre = 'chill') => {
   log(`scraper: scraping ${url}...`)
 
   const browser = await puppeteer.launch({ headless: false })
@@ -14,27 +14,15 @@ const scrape = async (url, genre = 'beautiful plays') => {
         const [nameChild, artistChild] = titleChild.children
         const { innerText: name } = nameChild
         const { innerText: artist } = artistChild
-        const { href } = downloadChild
-        return { name, artist, href }
+        const { href: url } = downloadChild
+        return { name, artist, url }
       }
     )
   })
-
-  // const tracks = await page.$$eval('a[data-media-type="music"]', (as) =>
-  //   as.map(({ href }) => ({
-  //     name: 'Anonymous',
-  //     title: href
-  //       .replace(/^.*filename=(.*?)\..*$/, '$1')
-  //       .split('-')
-  //       .slice(0, -1)
-  //       .join(' '),
-  //     href,
-  //   }))
-  // )
 
   await browser.close()
   log(`scraper: scraped ${tracks.length} ${genre} tracks from ${url}/${genre}`)
   return tracks
 }
 
-module.exports = { scrape }
+module.exports = { scrapeTracks }
