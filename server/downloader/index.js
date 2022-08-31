@@ -1,4 +1,6 @@
 const axios = require('axios')
+const pexels = require('./pexels')
+const pixabay = require('./pixabay')
 const { log } = require('../logger')
 const { basename } = require('path')
 const { createWriteStream } = require('fs')
@@ -18,4 +20,4 @@ const download = async (url) => {
   })
 }
 
-module.exports = { download }
+module.exports = { download, pexels, pixabay }
