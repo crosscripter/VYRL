@@ -8,11 +8,14 @@ const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
 ffmpeg.setFfmpegPath(ffmpegPath)
 
 const options = {
+  CAPTION: '-codec:a copy',
   CONCATMP3: '-acodec copy',
   LOOP_INPUT: `-stream_loop -1`,
   CONCATMP4: '-c copy -bsf:a aac_adtstoasc',
   LOOP_OUTPUT: secs => `-c copy -t ${secs}`,
   SUBTITLE: file => `-vf subtitles=${file}`,
+  FADE: (type, filter) => `-${type}f ${filter}`,
+  CONCAT_AUDIO_VIDEO: '-c copy -map 0:v -map 1:a',
   REFRAME: scale => `-filter:v setpts=${scale}*PTS`,
   TRANSCODE: '-c copy -bsf:v h264_mp4toannexb -f mpegts'
 }
@@ -84,7 +87,7 @@ const loop = async (file, secs) => await _ffmpeg(file, fileExt(file), options.LO
 const concatAV = async (files) => {
   const [video, audio] = files
   log(`ffmpeg: Adding audio ${audio} to video ${video}...`)  
-  const out = await _ffmpeg(files, 'mp4', '-c copy -map 0:v -map 1:a')
+  const out = await _ffmpeg(files, 'mp4', options.CONCAT_AUDIO_VIDEO)
   log(`ffmpeg: Audio track ${audio} added to ${video} video as ${out} successfully`)
   return out
 }
@@ -94,7 +97,7 @@ const fade = async ({ file, duration }) => {
   const type = ext === 'mp4' ? 'v' : 'a'
   let filter = filters.FADE(duration)
   filter = type === 'a' ? filter.replace(/fade/g, 'afade') : filter
-  return await _ffmpeg(file, ext, [ `-${type}f`, filter ])
+  return await _ffmpeg(file, ext, options.FADE(type, filter))
 }
 
 const concatMedia = (ext, options) => async (files) => {
@@ -112,7 +115,7 @@ const caption = async ([video, videoTitle, videoCredits, songTitle, songCredits]
   log(`ffmpeg: Adding caption "${videoTitle}\n${videoCredits}\n\n${songTitle}\n${songCredits}" to video ${video}...`)
   const lines = [[videoTitle, 180], [videoCredits, 160, 40], [songTitle, 120], [songCredits, 100, 40]]
   const filter = lines.map(filters.DRAWTEXT).join(',')
-  return await _ffmpeg(video, 'mp4', ['-codec:a', 'copy'], filter)
+  return await _ffmpeg(video, 'mp4', options.CAPTION, filter)
 }
 
 module.exports = {
