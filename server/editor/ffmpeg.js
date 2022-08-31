@@ -96,10 +96,11 @@ const voiceOver = async (files) => {
 const fade = async ({ file, duration }) => {
   const [name] = resolveFiles([file])
   const ext = parse(name).ext.slice(1).trim()
-  return await _ffmpeg(name, ext, [
-    `-vf`,
-    `fade=t=in:st=0:d=2,fade=t=out:st=${+duration - 2}:d=2`,
-  ])
+  const type = ext === 'mp4' ? 'v' : 'a'
+  const filter = `-${type}f`
+  let cmd = `fade=t=in:st=0:d=2,fade=t=out:st=${+duration - 2}:d=2`
+  cmd = type === 'a' ? cmd.replace(/fade/g, 'afade') : cmd
+  return await _ffmpeg(name, ext, [ filter, cmd ])
 }
 
 const subtitle = async (files) => {
