@@ -116,9 +116,9 @@ const watermark = async (files) => {
     [video, watermark],
     'mp4',
     ['-c:a', 'copy'],
-    `[1][0]scale2ref=w=oh*mdar:h=ih*0.1[logo][video];` +
+    `[1][0]scale2ref=w=oh*mdar:h=ih*0.09[logo][video];` +
       `[video][logo]overlay=10:5:enable='gte(t,5)':format=auto,format=yuv420p;` +
-      `[1]format=rgba,colorchannelmixer=aa=0.5[1]`
+      `[1]format=rgba,colorchannelmixer=aa=0.3[1]`
   )
 }
 
