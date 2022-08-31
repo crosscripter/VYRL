@@ -23,45 +23,9 @@ app.listen(3000, async () => {
   console.clear()
   log(`Server launched at ${SERVER_URL} 🚀`)
 
-  // await produce({
-  //   video: 'mtn.mp4',
-  //   videoTitle: 'Drone Mountain Footage',
-  //   videoCredits: 'Stephano Rinaldo',
-  //   song: 'cinematic.mp3',
-  //   songTitle: 'Cinematic Documentary',
-  //   songCredits: 'Lexin_Music at Pixabay',
-  //   transcript: `
-  //   This is a test of the voiceover capabilities of the VIRAL Audio engine.
-  //   This powerful text-to-speech engine can automatically generate MP3 audio tracks from textual input.
-  //   Meaning, that the audio you are hearing right now, was produced entirely by code!
-  //   `,
-  // })
-
-  // const visuals = 'beach'
-  // const genre = 'ambient'
-
-  // log(`Generating random video of a ${visuals} with ${genre} music...`)
-  // await generate(visuals, genre)
-
-  // await rainVideo()
-
-  // await video({
-  //   video: {
-  //     file: 'waterfall.mp4',
-  //     author: 'Engin Akyurt',
-  //     title: 'Beauty of Waterfalls',
-  //   },
-  //   audio: {
-  //     file: 'brady.mp3',
-  //     author: 'Kevin MacLeod',
-  //     title: 'A Very Brady Special',
-  //   },
-  //   duration: 60,
-  // })
-
   await produce({
-    duration: 240, // 60s
+    duration: 240,
     video: { theme: 'sunset' },
-    audio: { genre: 'R&B' },
+    audio: { theme: 'R&B' }
   })
 })
