@@ -1,4 +1,5 @@
 require('dotenv').config()
+const { parse } = require('path')
 const { log } = require('./logger')
 const { ASSET_BASE } = process.env
 
