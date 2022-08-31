@@ -1,14 +1,14 @@
 const chalk = require('chalk')
-const subsrt = require('subsrt')
 const _ = require('underscore')
-const { readFileSync, writeFileSync } = require('fs')
+const subsrt = require('subsrt')
+const { log } = require('../logger')
 const pexels = require('../downloader/pexels')
 const pixabay = require('../downloader/pixabay')
 const getMp3duration = require('get-mp3-duration')
-const { getVideoDurationInSeconds } = require('get-video-duration')
-
-const { log } = require('../logger')
+const { readFileSync, writeFileSync } = require('fs')
+const { resolveFiles, tempName } = require('../utils')
 const { say, transcribe } = require('../reader/reader')
+
 const {
   concatAV,
   voiceOver,
@@ -21,124 +21,57 @@ const {
   loop,
   fade,
 } = require('../editor/ffmpeg')
-const { resolveFiles, tempName } = require('../utils')
 
 const INTRO = 'intro.mp4'
 const OUTRO = 'outro.mp4'
 const WATERMARK = 'watermark.gif'
 
-const getVideos = async (spec) => {
-  const {
-    video: { theme },
-  } = spec
 
+const getAssets = (type, service) => async spec => {
   let i = 0
-  const videoInfo = { length: 0, videos: [] }
-  const videos = await pexels.search(theme, 100)
-
-  while (videoInfo.length <= spec.duration) {
-    const video = videos[i++]
-    const { url, title, name, duration, video: href } = video
-    log('Downloading', title, 'by', name, '(', duration, 's) from', url, '...')
-    const file = await pexels.download(href)
-    log(name, '(', duration, 's)')
-    videoInfo.length += parseInt(duration, 10)
-    log('total length:', videoInfo.length)
-    videoInfo.videos.push({
-      name: title,
-      name,
-      artist: name,
-      duration,
-      file,
-      href,
-    })
+  const { [type]: { theme } } = spec  
+  const assets = { length: 0, items: [] }
+  const items = await service.search(theme, 100)
+  
+  while (assets.length <= spec.duration) {
+    const item = items[i++]
+    const { name, artist, url } = item
+    const file = await pexels.download(url)
+    const duration = item?.duration ?? getMp3duration(readFileSync(file))
+    log(`(${assets.length}) Downloading`, name, 'by', artist, '(', duration, 's) from', url, '...')  
+    assets.length += parseInt(duration, 10)
+    assets.items.push({ name, artist, duration, file, url })
   }
-
-  log(
-    chalk.green`Found ${videoInfo.videos.length} ${theme} video(s)`,
-    JSON.stringify(videoInfo)
-  )
-
-  return videoInfo
+  
+  log(chalk.green`Found ${assets.items.length} ${theme} ${type}(s)`, JSON.stringify(assets))
+  return assets
 }
 
-const getAudios = async (spec) => {
-  const {
-    audio: { genre },
-  } = spec
-
-  let i = 0
-  const audioInfo = { length: 0, audios: [] }
-  const audios = await pixabay.search(genre, 100)
-
-  while (audioInfo.length <= spec.duration) {
-    const audio = audios[i++]
-    const { name, artist, href } = audio
-    const file = await pexels.download(href)
-    const duration = await getMp3duration(readFileSync(file))
-    log(
-      'Downloading',
-      name,
-      'by',
-      artist,
-      '(',
-      duration,
-      's) from',
-      href,
-      '...'
-    )
-    audioInfo.length += parseInt(duration, 10) / 1000
-    log('total length:', audioInfo.length)
-    audioInfo.audios.push({ name, artist, duration, file, href })
-  }
-
-  log(
-    chalk.green`Found ${audioInfo.audios.length} ${genre} audio(s)`,
-    JSON.stringify(audioInfo)
-  )
-
-  return audioInfo
-}
-
-const captionText = (type, item) => {
-  const icons = { video: '🎥', audio: '🎵' }
-
-  const icon = icons[type]
-
-  let name = item.name
-  name = name ? `"${name}"` : type
-
-  let artist = item.artist
-  artist = artist ? `@${artist}` : 'Anonymous'
-
-  const source = type === 'video' ? 'Pexels' : 'Pixabay'
-
-  return (
-    `{\\an1} <font size="10px">${icon} <b>${name}</b></font><br/>` +
-    `<font size="8px">by ${artist} at ${source}</font>`
-  )
-}
+const getVideos = getAssets('video', pexels)
+const getAudios = getAssets('audio', pixabay)
 
 const generateCaptions = async (duration, videos, audios) => {
   let pos = 0
 
-  const videoCaptions = videos.map((video) => {
+  const captionText = (type, item) => {
+    const isVideo = type === 'video'
+    const icon = isVideo ? '🎥' : '🎵' 
+    const source = isVideo ? 'Pexels' : 'Pixabay'
+    const { name = type, artist = 'Anonymous' } = item
+
+    return `{\\an1} <font size="10px">${icon} <b>${name}</b></font><br/>
+            <font size="8px">${artist} at ${source}</font>`
+  }
+  
+  const captionAs = type => item => {
     const start = pos * 1000
-    pos += video.duration
-    const end = pos * 1000
-    const text = captionText('video', video)
-    return { start, end, text }
-  })
-
+    pos += item.duration
+    return { start, end: pos * 1000, text: captionText(type, item) }    
+  }
+  
+  const videoCaptions = videos.map(captionAs('video'))
   pos = 0
-  const audioCaptions = audios.map((audio) => {
-    const start = pos // * 1000
-    pos += audio.duration
-    const end = pos // * 1000
-    const text = captionText('audio', audio)
-    return { start, end, text }
-  })
-
+  const audioCaptions = audios.map(captionAs('audio'))
   let captions = [...videoCaptions, ...audioCaptions]
   captions = _.sortBy(captions, (o) => o.start)
 
@@ -151,204 +84,29 @@ const generateCaptions = async (duration, videos, audios) => {
 
 const produce = async (spec) => {
   const { duration } = spec
-  const { audios } = await getAudios(spec)
+  const [introDuration, outroDuration] = [5, 7]
+  const mediaDuration = duration + introDuration + outroDuration
+
   const { videos } = await getVideos(spec)
-
-  let video = videos.map(({ file }) => file) // await Promise.all(
-  //   videos.map(async ({ file, duration }) => await fade({ file, duration }))
-  // )
-  let audio = audios.map(({ file }) => file) // await Promise.all(
-  //   audios.map(async ({ file, duration }) => await fade({ file, duration }))
-  // )
-
+  let video = await Promise.all(videos.map(fade))
   video = await concatmp4(video)
   video = await loop(video, duration)
-  // video = await fade({ file: video, duration })
-
-  audio = await concatmp3(audio)
-
+  
   const captions = await generateCaptions(duration, videos, audios)
   video = await subtitle([video, captions])
-  // const outro = await fade({ file: OUTRO, duration: 7 })
-  // video = await watermark([video, WATERMARK])
-  video = await concatmp4([INTRO, video, OUTRO]) // outro])
-  audio = await loop(audio, duration + 12)
-  video = await concatAV([video, audio])
 
+  const outro = await fade({ file: OUTRO, duration: outroDuration })
+  video = await watermark([video, WATERMARK])
+  video = await concatmp4([INTRO, video, outro])
+  
+  const { audios } = await getAudios(spec)
+  let audio = await Promise.all(audios.map(fade))
+  audio = await concatmp3(audio)
+  audio = await loop(audio, mediaDuration)
+  audio = await fade({ file: audio, duration: mediaDuration })
+  
+  video = await concatAV([video, audio])
   return log(video)
 }
 
-// const produce = async ({
-//   video,
-//   videoTitle,
-//   videoCredits,
-//   song,
-//   songTitle,
-//   songCredits,
-//   transcript,
-// }) => {
-//   log(chalk`produce: {yellow {bold WAIT}} Producing video "${videoTitle}"...`)
-
-//   log(chalk`produce: {yellow {bold WAIT}} Watermarking video...`)
-//   video = await watermark([video, WATERMARK])
-
-//   if (videoTitle || videoCredits || songTitle || songCredits) {
-//     log(chalk`produce: {yellow {bold WAIT}} Adding captions...`)
-//     video = await caption([
-//       video,
-//       videoTitle,
-//       videoCredits,
-//       songTitle,
-//       songCredits,
-//     ])
-//   }
-
-//   log(`produce: {yellow {bold WAIT}} Adding intro and outro...`)
-//   video = await concatmp4([INTRO, video, OUTRO])
-
-//   let audio
-//   if (transcript) {
-//     log(chalk`produce: {yellow {bold WAIT}} Generating voice over...`)
-//     const speech = await say(transcript)
-//     audio = await voiceOver([song, speech])
-//   } else {
-//     audio = song
-//   }
-
-//   log(chalk`produce: {yellow {bold WAIT}} Mixing audio...`)
-//   video = await concatAV([video, audio])
-
-//   if (transcript) {
-//     log(chalk`produce: {yellow {bold WAIT}} Adding subtitles...`)
-//     const subtitles = await transcribe(transcript)
-//     video = await subtitle([video, subtitles])
-//   }
-
-//   log(chalk`{green {bold DONE}} video ${videoTitle} produced at ${video}`)
-//   return video
-// }
-
-// const generate = async (visuals, genre) => {
-//   log(
-//     chalk`generate: {yellow {bold WAIT}} Generating "${visuals}" video with "${genre}" music...`
-//   )
-
-//   //Audio
-//   log(
-//     chalk`generate: {yellow {bold WAIT}} Searching Pixabay for "${genre}" tracks...`
-//   )
-//   const raudio = _.sample(await pixabay.search(genre))
-//   const { name: songTitle, href } = raudio
-//   const songCredits = '@Anonymous at Pixabay'
-
-//   log(
-//     chalk`generate: {yellow {bold WAIT}} Found audio "${songTitle}" by "${songCredits}" at\n${href}`
-//   )
-//   const song = await pexels.download(raudio.href)
-//   log(
-//     chalk`generate: {yellow {bold WAIT}} Downloaded audio "${songTitle}" by "${songCredits}" from ${href} to ${song}`
-//   )
-
-//   // Video
-//   log(
-//     chalk`generate: {yellow {bold WAIT}} Searching Pexels for "${visuals}" videos..`
-//   )
-//   const rvideos = _.sample(await pexels.search(visuals, 10), 3)
-
-//   const cvideos = await Promise.all(
-//     rvideos.map(async (rvideo, i) => {
-//       log('rvideo', i, JSON.stringify(rvideo))
-//       const { name: videoTitle, url, video } = rvideo
-//       const videoCredits = rvideo.name
-
-//       log(
-//         chalk`generate: {yellow {bold WAIT}} Found video "${videoTitle}" by "${videoCredits}" at\n${video}`
-//       )
-//       let videoFile = await pexels.download(rvideo.video)
-//       log(
-//         chalk`generate: {yellow {bold WAIT}} Downloaded video "${videoTitle}" by "${videoCredits}" from ${video} to ${videoFile} `
-//       )
-
-//       videoFile = await caption([
-//         videoFile,
-//         videoTitle,
-//         videoCredits,
-//         songTitle,
-//         songCredits,
-//       ])
-
-//       videoFile = await loop(video, 120)
-//       return videoFile
-//     })
-//   )
-
-//   log('cvideos=', JSON.stringify(cvideos))
-//   const videoFile = await concatmp4(cvideos)
-
-//   return await produce({
-//     video: videoFile,
-//     videoTitle: '',
-//     videoCredits: '',
-//     song,
-//     songTitle: '',
-//     songCredits: '',
-//     transcript: '',
-//   })
-// }
-
-// const getItems =
-//   (type, service, prop, concat) => async (query, count, duration) => {
-//     log(chalk`Finding ${count} ${query} ${type}s of ${duration}s....`)
-//     const items = _.sample(await service.search(query, count), count)
-//     if (!items.length) throw `No ${type} found for ` + query
-//     log(chalk`Found ${items.length} item(s): ${JSON.stringify(items)}`)
-
-//     const files = await Promise.all(
-//       items.map(async (item) => {
-//         log(chalk`Downloading ${item[prop]}...`)
-//         let file = await pexels.download(item[prop])
-//         log(chalk`Downloaded ${item[prop]} to ${file}...`)
-//         // file = await loop(file, duration)
-//         return file
-//       })
-//     )
-
-//     const [first, ...rest] = files
-//     const result = await concat([first, ...rest])
-//     log(chalk`${type} result: ${result}`)
-//     return result
-//   }
-
-// const getVideos = getItems('video', pexels, 'video', concatmp4)
-
-// const getAudios = getItems('audio', pixabay, 'href', concatmp3)
-
-// const rainVideo = async (duration) => {
-//   log(chalk`Generating rain video of ${duration}s...`)
-//   let video = await getVideos('toes', 50)
-//   log('\n\nvideo', video)
-//   let audio = await getAudios('drama', 40)
-//   log('\n\naudio', audio)
-//   return await concatAV([video, audio])
-// }
-
-// const video = async ({ video, audio, duration }) => {
-//   const [videoFile, audioFile] = resolveFiles([video.file, audio.file])
-//   const wvideoFile = await watermark([videoFile, WATERMARK])
-
-//   const cvideoFile = await caption([
-//     wvideoFile,
-//     video.title,
-//     video.author,
-//     audio.title,
-//     audio.author,
-//   ])
-
-//   const videoOut = await loop(cvideoFile, duration)
-//   const audioOut = await loop(audioFile, duration)
-//   const outFile = await concatAV([videoOut, audioOut])
-//   log(chalk`produce: {bold {green DONE}} Video produced at ${outFile}`)
-//   return outFile
-// }
-
-module.exports = { produce } //, generate, rainVideo, video }
+module.exports = { produce }
