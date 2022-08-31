@@ -10,9 +10,10 @@ ffmpeg.setFfmpegPath(ffmpegPath)
 const filters = {
   REFRAME: scale => `setpts=${scale}*PTS`,
   VOICEOVER: '[0:0]volume=0.3[a];[1:0]volume=2.0[b];[a][b]amix=inputs=2:duration=longest',
-  WATERMARK: '[1][0]scale2ref=w=oh*mdar:h=ih*0.09[logo][video];' +
-             '[video][logo]overlay=10:5:enable='gte(t,5)':format=auto,format=yuv420p;' +
-             '[1]format=rgba,colorchannelmixer=aa=0.3[1]',
+  DRAWTEXT: ([text, y, size = 42]) => `drawtext=font=verdana:text='${text}':fontcolor=white:fontsize=${size}:x=20:y=h-th-${y}`,
+  WATERMARK: `[1][0]scale2ref=w=oh*mdar:h=ih*0.09[logo][video];` +
+             `[video][logo]overlay=10:5:enable='gte(t,5)':format=auto,format=yuv420p;` +
+             `[1]format=rgba,colorchannelmixer=aa=0.3[1]`,
 }
 
 const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions) => {
@@ -92,17 +93,8 @@ const concatMedia = (ext, options) => async (files) => {
 
 const caption = async ([video, videoTitle, videoCredits, songTitle, songCredits]) => {
   log(`ffmpeg: Adding caption "${videoTitle}\n${videoCredits}\n\n${songTitle}\n${songCredits}" to video ${video}...`)
-
-  const drawText = (text, y, size = 42, font = 'verdana', color = 'white') =>
-    `drawtext=font=${font}:text='${text}':fontcolor=${color}:fontsize=${size}:x=20:y=h-th-${y}`
-
-  const filter = [
-    drawText(videoTitle, 180),
-    drawText(videoCredits, 160, 40),
-    drawText(songTitle, 120),
-    drawText(songCredits, 100, 40),
-  ].join(',')
-
+  const lines = [[videoTitle, 180], [videoCredits, 160, 40], [songTitle, 120], [songCredits, 100, 40]]
+  const filter = lines.map(filters.DRAWTEXT).join(',')
   return await _ffmpeg(video, 'mp4', ['-codec:a', 'copy'], filter)
 }
 
