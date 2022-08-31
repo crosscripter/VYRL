@@ -171,7 +171,7 @@ const produce = async (spec) => {
   video = await subtitle([video, captions])
   // const outro = await fade({ file: OUTRO, duration: 7 })
   // video = await watermark([video, WATERMARK])
-  video = await concatmp4([INTRO, video, outro])
+  video = await concatmp4([INTRO, video, OUTRO]) // outro])
   audio = await loop(audio, duration + 12)
   video = await concatAV([video, audio])
 
