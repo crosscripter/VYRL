@@ -47,20 +47,14 @@ const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions) => {
     
     let $ffmpeg = ffmpeg()
     if (inputOptions) $ffmpeg = $ffmpeg.inputOptions(...inputOptions)
-
-    inputs.forEach((input) => {
-      $ffmpeg = $ffmpeg.addInput(input)
-    })
+    inputs.forEach(input => $ffmpeg = $ffmpeg.addInput(input))
 
     if (outputOptions) $ffmpeg = $ffmpeg.outputOptions(...outputOptions)
     $ffmpeg = $ffmpeg.output(out)
 
     if (filter) $ffmpeg = $ffmpeg.complexFilter(filter)
 
-    $ffmpeg
-      .on('end', () => resolve(out))
-      .on('error', (e) => reject(e))
-      .run()
+    $ffmpeg.on('end', () => resolve(out)).on('error', (e) => reject(e)).run()
   })
 }
 
