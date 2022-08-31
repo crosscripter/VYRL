@@ -2,12 +2,11 @@ const chalk = require('chalk')
 const _ = require('underscore')
 const subsrt = require('subsrt')
 const { log } = require('../logger')
-const pexels = require('../downloader/pexels')
-const pixabay = require('../downloader/pixabay')
 const getMp3duration = require('get-mp3-duration')
 const { readFileSync, writeFileSync } = require('fs')
 const { resolveFiles, tempName } = require('../utils')
 const { say, transcribe } = require('../reader/reader')
+const { pexels, pixabay, download } = require('../downloader')
 
 const {
   concatAV,
@@ -36,7 +35,7 @@ const getAssets = (type, service) => async spec => {
   while (assets.length <= spec.duration) {
     const item = items[i++]
     const { name, artist, url } = item
-    const file = await pexels.download(url)
+    const file = await download(url)
     const duration = item?.duration ?? getMp3duration(readFileSync(file))
     log(`(${assets.length}) Downloading`, name, 'by', artist, '(', duration, 's) from', url, '...')  
     assets.length += parseInt(duration, 10)
