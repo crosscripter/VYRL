@@ -1,5 +1,4 @@
 require('dotenv').config()
-const { default: axios } = require('axios')
 const { log } = require('../logger')
 const { scrape } = require('./scraper')
 const { PIXABAY_URL } = process.env
