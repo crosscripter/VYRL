@@ -3,9 +3,9 @@ const { log } = require('../logger')
 const { scrapeTracks } = require('./scraper')
 const { PIXABAY_URL } = process.env
 
-const search = async (genre) => {
-  log(`pixabay: searching for ${genre} music from ${PIXABAY_URL}...`)
-  return scrapeTracks(PIXABAY_URL, genre)
+const search = async theme => {
+  log(`pixabay: searching for ${theme} music from ${PIXABAY_URL}...`)
+  return await scrapeTracks(PIXABAY_URL, theme)
 }
 
 module.exports = { search }

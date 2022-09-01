@@ -1,14 +1,15 @@
 const { log } = require('../logger')
 const puppeteer = require('puppeteer')
 
-const scrapeTracks = async (url, genre = 'chill') => {
+const scrapeTracks = async (url, theme = 'chill') => {
   log(`scraper: scraping ${url}...`)
 
   const browser = await puppeteer.launch({ headless: false })
   const page = await browser.newPage()
-  await page.goto(`${url}/${genre}`)
+  const searchUrl = `${url}/${theme}`
+  await page.goto(searchUrl)
 
-  const tracks = await page.$$eval('.track-main', (tracks) => {
+  const tracks = await page.$$eval('.track-main', tracks => {
     return tracks.map(
       ({ children: [a, b, titleChild, c, infoChild, downloadChild] }) => {
         const [nameChild, artistChild] = titleChild.children
@@ -21,7 +22,7 @@ const scrapeTracks = async (url, genre = 'chill') => {
   })
 
   await browser.close()
-  log(`scraper: scraped ${tracks.length} ${genre} tracks from ${url}/${genre}`)
+  log(`scraper: scraped ${tracks.length} ${theme} tracks from ${searchUrl}`)
   return tracks
 }
 

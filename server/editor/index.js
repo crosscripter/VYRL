@@ -1,5 +1,4 @@
 require('dotenv').config()
-const { log } = require('../logger')
 const { parse } = require('path')
 const ffmpeg = require('./ffmpeg')
 const { Router } = require('express')
