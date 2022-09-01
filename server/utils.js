@@ -1,6 +1,9 @@
 require('dotenv').config()
-const { parse } = require('path')
+const chalk = require('chalk')
 const { ASSET_BASE } = process.env
+const { log } = require('./logger')
+const { join, parse } = require('path')
+const { readdirSync, unlinkSync } = require('fs')
 
 const fileExt = file => parse(file).ext.slice(1).trim()
 
@@ -13,4 +16,13 @@ const resolveFiles = files =>
     return `${ASSET_BASE}/${f}`
   })
 
-module.exports = { resolveFiles, tempName, fileExt }
+const clean = () => {
+  readdirSync(ASSET_BASE)
+    .map(f => join(ASSET_BASE, f))
+    .filter(f => /temp/.test(f))
+    .forEach(f =>
+      log(chalk`{bold {blue clean}}: DELETING ${f}...`, (unlinkSync(f), ''))
+    )
+}
+
+module.exports = { resolveFiles, tempName, fileExt, clean }

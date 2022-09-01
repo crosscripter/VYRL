@@ -1,9 +1,10 @@
 const { stringify } = JSON
 const chalk = require('chalk')
+const { inspect } = require('util')
 
 const log = (...msgs) => {
   const msg = msgs
-    .map(x => (typeof x === 'object' ? stringify(x) : x))
+    .map(x => (typeof x === 'object' ? inspect(x, null, null, true) : x))
     .map(m => '' + m)
     .join(' ')
 
@@ -12,11 +13,11 @@ const log = (...msgs) => {
   )
 }
 
-const progress = (module, total, step, name, ...args) =>
+const progress = (module, total, step, name, args) => {
   log(
-    chalk`{bold {blue ${module}}} {blue (${step}/${total})} {magenta ${name}}:`,
-    ...args,
-    '...'
+    chalk`{bold {blue ${module}}} {blue (${step}/${total})} {white ${name}...}`,
+    args ? inspect(args, false, null, true) : ''
   )
+}
 
 module.exports = { log, progress }

@@ -1,10 +1,10 @@
 const chalk = require('chalk')
 const _ = require('underscore')
 const subsrt = require('subsrt')
-const { tempName } = require('../utils')
 const { log, progress } = require('../logger')
+const { clean, tempName } = require('../utils')
 const getMp3duration = require('get-mp3-duration')
-const { readFileSync, writeFileSync } = require('fs')
+const { readFileSync, writeFileSync, renameSync } = require('fs')
 const { pexels, pixabay, download } = require('../downloader')
 
 const {
@@ -15,10 +15,11 @@ const {
   concatmp4,
   loop,
   fade,
+  scale,
 } = require('../editor/ffmpeg')
 
-const INTRO = 'intro.mp4'
-const OUTRO = 'outro.mp4'
+const INTRO = 'intro-full.mp4'
+const OUTRO = 'outro-full-fade.mp4'
 const WATERMARK = 'watermark.gif'
 
 const getAssets = (type, service) => async spec => {
@@ -69,7 +70,7 @@ const generateCaptions = async (videos, audios) => {
     const { name = type, artist = 'Anonymous' } = item
 
     return (
-      `{\\an1} <font size="10px">${icon} <b>${name}</b></font><br/>` +
+      `{\\an1} <font size="10px">${icon} "<b>${name}</b>"</font><br/>` +
       `<font size="8px">${artist} at ${source}</font>`
     )
   }
@@ -77,7 +78,7 @@ const generateCaptions = async (videos, audios) => {
   const captionAs = type => item => {
     const start = pos * 1000
     pos += item.duration
-    return { start, end: pos * 1000, text: captionText(type, item) }
+    return { start, end: pos * 1000 - 500, text: captionText(type, item) }
   }
 
   const videoCaptions = videos.map(captionAs('video'))
@@ -96,7 +97,7 @@ const generateCaptions = async (videos, audios) => {
 }
 
 const produce = async spec => {
-  const log = progress.bind(this, 'producer', 14)
+  const log = progress.bind(this, 'producer', 16)
 
   const { duration } = spec
   const [introDuration, outroDuration] = [5, 7]
@@ -108,64 +109,67 @@ const produce = async spec => {
     mediaDuration,
   })
 
-  log(2, 'Searching for video assets', { spec: spec.video })
+  log(2, 'Searching for video assets')
   const { items: videos } = await getVideos(spec)
 
-  log(3, 'Adding fade transitions to videos', { count: videos.length })
+  log(3, 'Adding fade transitions to videos')
   let video = await Promise.all(videos.map(fade))
 
-  log(4, 'Concatenating video clips', { video, count: videos.length })
+  log(4, 'Concatenating video clips')
   video = await concatmp4(video)
 
-  log(5, 'Looping video to duration', { video, duration })
+  log(5, 'Looping video to duration')
   video = await loop(video, duration)
 
-  log(10, 'Searching for audio assets', { spec: spec.audio })
+  log(5.1, 'Scaling video to full HD')
+  video = await scale(video)
+
+  log(10, 'Searching for audio assets')
   const { items: audios } = await getAudios(spec)
 
-  log(6, 'Generating video/audio captions', { video, videos, audios })
+  log(6, 'Generating video/audio captions')
   const captions = await generateCaptions(videos, audios)
 
-  log(7, 'Burning in subtitles', { video, captions })
+  log(7, 'Burning in subtitles')
   video = await subtitle([video, captions])
 
-  log(8, 'Adding fade out transition to outro', { video, OUTRO, outroDuration })
-  const outro = await fade({ file: OUTRO, duration: outroDuration })
-
-  log(9, 'Adding watermark to video', { video, WATERMARK })
+  log(8, 'Adding watermark to video')
   video = await watermark([video, WATERMARK])
 
-  log(10, 'Concatenating intro and out to video', { video, INTRO, outro })
-  video = await concatmp4([INTRO, video, outro])
+  log(9, 'Concatenating intro and outro to video')
+  video = await concatmp4([INTRO, video, OUTRO])
 
-  log(11, 'Adding fade to audio', { count: audios.length })
+  log(10, 'Adding fade to audio tracks')
   let audio = await Promise.all(audios.map(fade))
 
-  log(12, 'Concatenating audio tracks', { audio })
+  log(11, 'Concatenating audio tracks')
   audio = await concatmp3(audio)
 
-  log(13, 'Looping audio to duration', { audio, mediaDuration })
+  log(12, 'Looping audio to duration')
   audio = await loop(audio, mediaDuration)
 
-  log(14, 'Adding fade to audio', { audio, mediaDuration })
+  log(13, 'Adding fade to audio')
   audio = await fade({ file: audio, duration: mediaDuration })
 
-  log(15, 'Mixing audio into video and encoding media', {
-    video,
-    audio,
-    mediaDuration,
-  })
+  log(14, 'Mixing audio into video and encoding media')
   video = await concatAV([video, audio])
 
-  log(16, chalk`Video produced successfully!\n\n{bold {green ${video}}}`, {
+  log(15, 'Cleaning up temp files')
+  const result = video.replace(/temp/g, 'out')
+  renameSync(video, result)
+  clean()
+
+  log(16, chalk`Video produced successfully!\n\n{bold {green ${result}}}`, {
     spec,
     mediaDuration,
     video,
     videoCount: videos.length,
     audio,
     audioCount: audios.length,
+    result,
   })
-  return video
+
+  return result
 }
 
 module.exports = { produce }

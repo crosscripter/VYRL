@@ -1,5 +1,6 @@
 const { log } = require('../logger')
 const puppeteer = require('puppeteer')
+const { sample } = require('underscore')
 
 const scrapeTracks = async (url, theme = 'chill') => {
   log(`scraper: scraping ${url}...`)
@@ -23,7 +24,7 @@ const scrapeTracks = async (url, theme = 'chill') => {
 
   await browser.close()
   log(`scraper: scraped ${tracks.length} ${theme} tracks from ${searchUrl}`)
-  return tracks
+  return sample(tracks, tracks.length)
 }
 
 module.exports = { scrapeTracks }
