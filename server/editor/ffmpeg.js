@@ -8,6 +8,7 @@ const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
 ffmpeg.setFfmpegPath(ffmpegPath)
 
 const options = {
+  OVERLAY_INPUT: '-loop 1',
   CAPTION: '-codec:a copy',
   CONCATMP3: '-acodec copy',
   LOOP_INPUT: `-stream_loop -1`,
@@ -18,9 +19,11 @@ const options = {
   CONCAT_AUDIO_VIDEO: '-c copy -map 0:v -map 1:a',
   REFRAME: scale => `-filter:v setpts=${scale}*PTS`,
   TRANSCODE: '-c copy -bsf:v h264_mp4toannexb -f mpegts',
+  OVERLAY_OUTPUT: '-map "[v]" -map 1:a -c:a copy -movflags +faststart', 
 }
 
 const filters = {
+  OVERLAY: '[0:v][1:v]overlay=(W-w)/2:(H-h)/2:shortest=1,format=yuv420p[v]',
   FADE: duration => `fade=t=in:st=0:d=2,fade=t=out:st=${+duration - 2}:d=2`,
   VOICEOVER:
     '[0:0]volume=0.3[a];[1:0]volume=2.0[b];[a][b]amix=inputs=2:duration=longest',
@@ -69,6 +72,19 @@ const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions) => {
       .run()
   })
 }
+
+// ffmpeg -loop 1 -i bg.png -i video.mp4 -filter_complex \
+// "[0:v][1:v]overlay=(W-w)/2:(H-h)/2:shortest=1,format=yuv420p[v]" \
+// -map "[v]" -map 1:a -c:a copy -movflags +faststart output.mp4
+
+const overlay = async (files) =>
+  await _ffmpeg(
+    files, 
+    'mp4',
+    options.OVERLAY_OUTPUT,
+    filters.OVERLAY,
+    options.OVERLAY_INPUT
+  )
 
 const concatMedia = (ext, options) => async files => {
   const names = await Promise.all(resolveFiles(files).map(transcode))
