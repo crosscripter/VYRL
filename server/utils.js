@@ -3,7 +3,7 @@ const chalk = require('chalk')
 const { ASSET_BASE } = process.env
 const { log } = require('./logger')
 const { join, parse } = require('path')
-const { readdirSync, unlinkSync } = require('fs')
+const { readdirSync, unlinkSync, unlink } = require('fs')
 
 const fileExt = file => parse(file).ext.slice(1).trim()
 
@@ -17,12 +17,20 @@ const resolveFiles = files =>
   })
 
 const clean = () => {
-  readdirSync(ASSET_BASE)
+  const tempFiles = readdirSync(ASSET_BASE)
     .map(f => join(ASSET_BASE, f))
     .filter(f => /temp/.test(f))
-    .forEach(f =>
-      log(chalk`{bold {blue clean}}: DELETING ${f}...`, (unlinkSync(f), ''))
-    )
+
+  log(
+    chalk`{bold {red clean}}: DELETING ${tempFiles.length} temp file(s)...`,
+    tempFiles
+  )
+
+  tempFiles.forEach(f => {
+    try {
+      unlinkSync(f)
+    } catch {}
+  })
 }
 
 module.exports = { resolveFiles, tempName, fileExt, clean }

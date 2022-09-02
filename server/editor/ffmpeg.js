@@ -1,4 +1,5 @@
 const chalk = require('chalk')
+const { cpus } = require('os')
 const { log } = require('../logger')
 const { unlinkSync } = require('fs')
 const { resolveFiles, fileExt, tempName } = require('../utils')
@@ -38,6 +39,7 @@ const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions) => {
     inputOptions = inputOptions?.split(' ') ?? []
     outputOptions = outputOptions?.split(' ') ?? []
 
+    if (!inputOptions.length) inputOptions.push(`-threads ${cpus().length / 2}`)
     const out = tempName(ext)
 
     inputs = Array.isArray(inputs) ? inputs : [inputs]

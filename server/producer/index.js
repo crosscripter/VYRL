@@ -1,11 +1,13 @@
 const chalk = require('chalk')
 const _ = require('underscore')
 const subsrt = require('subsrt')
+const { join } = require('path')
+const { Worker } = require('worker_threads')
 const { log, progress } = require('../logger')
 const { clean, tempName } = require('../utils')
 const getMp3duration = require('get-mp3-duration')
-const { readFileSync, writeFileSync, renameSync } = require('fs')
 const { pexels, pixabay, download } = require('../downloader')
+const { readFileSync, writeFileSync, renameSync } = require('fs')
 
 const {
   concatAV,
@@ -15,7 +17,6 @@ const {
   concatmp4,
   loop,
   fade,
-  scale,
 } = require('../editor/ffmpeg')
 
 const INTRO = 'intro-full.mp4'
@@ -44,6 +45,8 @@ const getAssets = (type, service) => async spec => {
       duration,
       's) from',
       url,
+      'to',
+      file,
       '...'
     )
     assets.length += parseInt(duration, 10)
@@ -96,80 +99,71 @@ const generateCaptions = async (videos, audios) => {
   return out
 }
 
-const produce = async spec => {
-  const log = progress.bind(this, 'producer', 16)
+const Producer = spec => type => {
+  return new Promise(resolve => {
+    const worker = new Worker(join(__dirname, 'workers', `${type}.js`))
+    console.time(type)
+    worker.postMessage({ spec })
+    worker.on('message', async msg => {
+      console.timeEnd(type)
+      log(chalk`{bold {blue ${type}}}: Result from ${type} producer`, msg)
+      return resolve(msg)
+    })
+  })
+}
 
+const produce = async spec => {
+  const log = progress.bind(this, 'producer', 8)
+
+  console.time()
   const { duration } = spec
   const [introDuration, outroDuration] = [5, 7]
-  const mediaDuration = duration + introDuration + outroDuration
+  spec.duration = duration + introDuration + outroDuration
+  const producer = Producer(spec)
+
   log(1, 'Calculating media durations', {
     duration,
     introDuration,
     outroDuration,
-    mediaDuration,
+    totalDuration: spec.duration,
   })
 
-  log(2, 'Searching for video assets')
-  const { items: videos } = await getVideos(spec)
+  log(2, 'Spawing audio/video producers...')
+  const producers = [producer('video'), producer('audio')]
+  let [{ video, videos }, { audio, audios }] = await Promise.all(producers)
 
-  log(3, 'Adding fade transitions to videos')
-  let video = await Promise.all(videos.map(fade))
-
-  log(4, 'Concatenating video clips')
-  video = await concatmp4(video)
-
-  log(5, 'Looping video to duration')
-  video = await loop(video, duration)
-
-  log(5.1, 'Scaling video to full HD')
-  video = await scale(video)
-
-  log(10, 'Searching for audio assets')
-  const { items: audios } = await getAudios(spec)
-
-  log(6, 'Generating video/audio captions')
+  log(3, 'Generating video/audio captions')
   const captions = await generateCaptions(videos, audios)
 
-  log(7, 'Burning in subtitles')
+  log(4, 'Burning in subtitles')
   video = await subtitle([video, captions])
 
-  log(8, 'Adding watermark to video')
-  video = await watermark([video, WATERMARK])
-
-  log(9, 'Concatenating intro and outro to video')
+  log(5, 'Concatenating intro and outro to video')
   video = await concatmp4([INTRO, video, OUTRO])
 
-  log(10, 'Adding fade to audio tracks')
-  let audio = await Promise.all(audios.map(fade))
-
-  log(11, 'Concatenating audio tracks')
-  audio = await concatmp3(audio)
-
-  log(12, 'Looping audio to duration')
-  audio = await loop(audio, mediaDuration)
-
-  log(13, 'Adding fade to audio')
-  audio = await fade({ file: audio, duration: mediaDuration })
-
-  log(14, 'Mixing audio into video and encoding media')
+  log(6, 'Mixing audio into video and encoding media')
   video = await concatAV([video, audio])
 
-  log(15, 'Cleaning up temp files')
+  log(7, 'Cleaning up temp files')
   const result = video.replace(/temp/g, 'out')
   renameSync(video, result)
   clean()
 
-  log(16, chalk`Video produced successfully!\n\n{bold {green ${result}}}`, {
+  console.timeEnd()
+
+  log(8, chalk`Video produced successfully!\n\n{bold {green ${result}}}`, {
     spec,
-    mediaDuration,
     video,
     videoCount: videos.length,
     audio,
     audioCount: audios.length,
     result,
   })
-
-  return result
 }
 
-module.exports = { produce }
+module.exports = {
+  produce,
+  getVideos,
+  getAudios,
+  WATERMARK,
+}

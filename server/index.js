@@ -25,7 +25,7 @@ app.listen(3000, async () => {
 
   await produce({
     duration: 120,
-    video: { theme: 'heaven light heavenly glory nature' },
-    audio: { theme: 'gospel' },
+    audio: { theme: 'beach' },
+    video: { theme: 'jazz' },
   })
 })

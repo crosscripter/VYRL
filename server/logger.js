@@ -1,5 +1,5 @@
-const { stringify } = JSON
 const chalk = require('chalk')
+const { hrtime } = require('process')
 const { inspect } = require('util')
 
 const log = (...msgs) => {
