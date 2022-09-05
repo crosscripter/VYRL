@@ -24,8 +24,8 @@ app.listen(3000, async () => {
   log(`Server launched at ${SERVER_URL} 🚀`)
 
   await produce({
-    duration: 120,
-    audio: { theme: 'beach' },
-    video: { theme: 'jazz' },
+    duration: 60 * 60,
+    video: { theme: 'forest trees' },
+    audio: { theme: 'ambient' },
   })
 })

@@ -29,15 +29,24 @@ const getAssets = (type, service) => async spec => {
     [type]: { theme },
   } = spec
   const assets = { length: 0, items: [] }
-  const items = await service.search(theme, 100)
+
+  const MAX_PER_PAGE = 70
+  let items = await service.search(theme, MAX_PER_PAGE)
 
   while (assets.length <= spec.duration) {
     const item = items[i++]
-    const { name, artist, url } = item
+    if (!item) {
+      log(chalk`{blue {bold download}} Searching for more ${type}(s)...`)
+      i = 0
+      items = await service.search(theme, MAX_PER_PAGE)
+      continue
+    }
+    const { name = 'Video', artist = 'Anonymous', url } = item
+    if (!url) continue
     const file = await download(url)
     const duration = item?.duration ?? getMp3duration(readFileSync(file))
     log(
-      chalk`{blue {bold download}}: (${assets.length}) Downloading`,
+      chalk`{blue {bold download}}: (${assets.items.length}) Downloading`,
       name,
       'by',
       artist,
