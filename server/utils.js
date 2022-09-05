@@ -12,7 +12,7 @@ const tempName = ext =>
 
 const resolveFiles = files =>
   files.map(f => {
-    if (f.startsWith(ASSET_BASE)) return f
+    if (f?.startsWith(ASSET_BASE)) return f
     return `${ASSET_BASE}/${f}`
   })
 
