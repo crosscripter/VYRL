@@ -43,7 +43,7 @@ const getAssets = (type, service) => async spec => {
     }
     const { name = 'Video', artist = 'Anonymous', url } = item
     if (!url) continue
-    const file = await download(url)
+    const file = await download(type, url)
     const duration = item?.duration ?? getMp3duration(readFileSync(file))
     log(
       chalk`{blue {bold download}}: (${assets.items.length}) Downloading`,

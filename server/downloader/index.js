@@ -1,14 +1,12 @@
 const axios = require('axios')
 const pexels = require('./pexels')
 const pixabay = require('./pixabay')
-const { basename } = require('path')
 const { createWriteStream } = require('fs')
-const { fileExt, tempName } = require('../utils')
+const { tempName } = require('../utils')
+const exts = { video: '.mp4', audio: '.mp3' }
 
-const download = async url => {
-  const fileName = basename(url).split('?')[0].trim()
-  const ext = fileExt(fileName) ?? '.mp4'
-  const out = tempName(ext)
+const download = async (type, url) => {
+  const out = tempName(exts[type])
 
   return new Promise(async (resolve, reject) => {
     const stream = await axios({ url, method: 'GET', responseType: 'stream' })
