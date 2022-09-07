@@ -1,8 +1,7 @@
 require('dotenv').config()
 const express = require('express')
 const { log } = require('./logger')
-const { pad } = require('./editor/ffmpeg')
-const { produce } = require('./producer')
+const { produce, rainVideo } = require('./producer')
 
 app = express()
 app.use(express.json())
@@ -24,8 +23,18 @@ app.listen(3000, async () => {
   log(`Server launched at ${SERVER_URL} 🚀`)
 
   await produce({
-    duration: 60 * 60,
-    video: { theme: 'forest trees' },
-    audio: { theme: 'ambient' },
+    duration: 30,
+    captions: true,
+    audio: {
+      fade: true,
+      theme: 'chill',
+    },
+    video: {
+      fade: true,
+      scale: true,
+      watermark: true,
+      theme: 'space planet galaxy stars',
+      hashtags: '#music, #relax, #space, #stars',
+    },
   })
 })

@@ -3,7 +3,7 @@ const chalk = require('chalk')
 const { ASSET_BASE } = process.env
 const { log } = require('./logger')
 const { join, parse } = require('path')
-const { readdirSync, unlinkSync, unlink } = require('fs')
+const { readdirSync, unlinkSync } = require('fs')
 
 const fileExt = file => parse(file).ext.slice(1).trim()
 

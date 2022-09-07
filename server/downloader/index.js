@@ -3,7 +3,7 @@ const pexels = require('./pexels')
 const pixabay = require('./pixabay')
 const { createWriteStream } = require('fs')
 const { tempName } = require('../utils')
-const exts = { video: '.mp4', audio: '.mp3' }
+const exts = { video: 'mp4', audio: 'mp3' }
 
 const download = async (type, url) => {
   const out = tempName(exts[type])
