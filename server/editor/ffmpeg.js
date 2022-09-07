@@ -1,12 +1,17 @@
+require('dotenv').config()
+const sharp = require('sharp')
 const chalk = require('chalk')
-const { cpus } = require('os')
+const _ = require('underscore')
 const { log } = require('../logger')
-const { unlinkSync } = require('fs')
+const { join, parse, resolve } = require('path')
+const { unlinkSync, existsSync, mkdirSync, readdirSync } = require('fs')
 const { resolveFiles, fileExt, tempName } = require('../utils')
 
 const ffmpeg = require('fluent-ffmpeg')
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
 ffmpeg.setFfmpegPath(ffmpegPath)
+
+const { ASSET_BASE } = process.env
 
 const options = {
   CAPTION: '-codec:a copy',
@@ -26,20 +31,23 @@ const filters = {
   FADE: duration => `fade=t=in:st=0:d=2,fade=t=out:st=${+duration - 2}:d=2`,
   VOICEOVER:
     '[0:0]volume=0.3[a];[1:0]volume=2.0[b];[a][b]amix=inputs=2:duration=longest',
-  DRAWTEXT: ([text, y, size = 42]) =>
-    `drawtext=font=verdana:text='${text}':fontcolor=white:fontsize=${size}:x=20:y=h-th-${y}`,
+  DRAWTEXT: (text, x, y, font = 'verdana', size = 50, color = 'white') =>
+    `drawtext=fontfile='${font}':text=${text}:fontcolor=${color}:shadowcolor=#000000@0.75:shadowx=30:shadowy=20:fontsize=H/3.3:x=${x}:y=H-th-${y}-30`,
+  WATERMARK_IMAGE:
+    `[1][0]scale2ref=w=oh*mdar:h=ih*0.3[logo][video];` +
+    `[video][logo]overlay=W-w-5:5`,
   WATERMARK:
     `[1][0]scale2ref=w=oh*mdar:h=ih*0.08[logo][video];` +
     `[video][logo]overlay=10:10:enable='gte(t,3)':format=auto,format=yuv420p;` +
     `[1]format=rgba,colorchannelmixer=aa=0.25[1]`,
 }
 
-const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions) => {
+const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions, output) => {
   return new Promise((resolve, reject) => {
     inputOptions = inputOptions?.split(' ') ?? []
     outputOptions = outputOptions?.split(' ') ?? []
 
-    const out = tempName(ext)
+    const out = output ?? tempName(ext)
 
     inputs = Array.isArray(inputs) ? inputs : [inputs]
 
@@ -98,8 +106,13 @@ const transcode = async file => await _ffmpeg(file, 'ts', options.TRANSCODE)
 const voiceOver = async files =>
   await _ffmpeg(files, 'mp3', '-y', filters.VOICEOVER)
 
-const watermark = async files =>
-  await _ffmpeg(files, 'mp4', '-c:a copy', filters.WATERMARK)
+const watermark = async (files, ext = 'mp4') =>
+  await _ffmpeg(
+    files,
+    ext,
+    ext === 'mp4' ? '-c:a copy' : null,
+    ext === 'mp4' ? filters.WATERMARK : filters.WATERMARK_IMAGE
+  )
 
 const reframe = async (video, scale = 2.0) =>
   await _ffmpeg(video, 'mp4', options.REFRAME(scale))
@@ -130,22 +143,94 @@ const fade = async ({ file, duration }) => {
   return await _ffmpeg(file, ext, options.FADE(type, filter))
 }
 
-const caption = async ([
-  video,
-  videoTitle,
-  videoCredits,
-  songTitle,
-  songCredits,
-]) => {
-  const lines = [
-    [videoTitle, 180],
-    [videoCredits, 160, 40],
-    [songTitle, 120],
-    [songCredits, 100, 40],
-  ]
+const frames = async (video, I) => {
+  const name = parse(video).base
+  const dir = `${ASSET_BASE}/${name}`
+  if (!existsSync(dir)) mkdirSync(dir)
 
-  const filter = lines.map(filters.DRAWTEXT).join(',')
-  return await _ffmpeg(video, 'mp4', options.CAPTION, filter)
+  let inputOptions = ''
+  let outputOptions = ''
+
+  if (I) {
+    inputOptions = '-skip_frame nokey'
+    outputOptions = '-vsync 0 -r 30 -f image2'
+  }
+
+  return await _ffmpeg(
+    video,
+    'png',
+    outputOptions,
+    null,
+    inputOptions,
+    `${dir}/%06d.png`
+  )
+}
+
+const thumbnailImage = async video => {
+  log(`thumb: Extracting key frames...`)
+  const path = await frames(video, true)
+  const dir = parse(path).dir
+
+  log(`thumb: Getting thumbnails...`)
+  const thumbs = readdirSync(dir).map(f => `${dir}/${f}`)
+  const stats = await Promise.all(
+    thumbs.map(async file => {
+      const { sharpness } = await sharp(file).stats()
+      return { file, sharpness }
+    })
+  )
+
+  const sharpest = _.sortBy(stats, s => s.sharpness).reverse()
+  const thumb = sharpest[0]
+  log(`thumb: thumbnail`, sharpest, thumb.file)
+  return thumb.file
+}
+
+const thumbnail = async (video, name) => {
+  log(`thumb: Getting thumbnail image...`)
+  const image = await thumbnailImage(video)
+
+  log(`thumb: Shadowing thumbnail...`)
+  const shadowed = await _ffmpeg(
+    image,
+    'png',
+    '-frames:v 1 -q:v 2',
+    '[0]split[v0][v1];[v0]crop=iw:ih/2,format=rgba,geq=r=0:g=0:b=0:a=255*(Y/H)[fg];[v1][fg]overlay=0:H-h:format=auto'
+  )
+  const shadowed2 = await _ffmpeg(
+    shadowed,
+    'png',
+    '-frames:v 1 -q:v 2',
+    '[0]split[v0][v1];[v0]crop=iw:ih/3,format=rgba,geq=r=0:g=0:b=0:a=-255*(Y/H)[fg];[v1][fg]overlay=0:-10:format=auto'
+  )
+
+  const title = name.split(' ').join('\n')
+  const font = join(resolve('./'), 'server/public', 'Roboto-Black.ttf').replace(
+    /([\:\\])/g,
+    '\\$1'
+  )
+
+  log(`thumb: Titling thumbnail "${name}"...`)
+  const titled = await _ffmpeg(
+    shadowed2,
+    'png',
+    null,
+    filters.DRAWTEXT(title.toUpperCase(), 10, 10, font, 360, 'white')
+  )
+
+  const _4K = '4K.png'
+  log(`thumb: Watermarking with 4k symbol...`)
+  const _4ked = await _ffmpeg(
+    [titled, _4K],
+    'png',
+    null,
+    '[1]scale=iw/1.8:-1[b];[0:v][b] overlay=W-w-20:H-h-30'
+  )
+
+  const WATERMARK = 'watermark.png'
+  log(`thumb: Watermarking VYRL logo...`, _4ked, WATERMARK)
+  const out = await watermark([_4ked, WATERMARK], 'png')
+  return out
 }
 
 module.exports = {
@@ -156,9 +241,10 @@ module.exports = {
   subtitle,
   watermark,
   wav2mp3,
-  caption,
   loop,
   reframe,
   fade,
   scale,
+  frames,
+  thumbnail,
 }
