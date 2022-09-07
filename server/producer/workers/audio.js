@@ -15,20 +15,31 @@ parentPort.on('message', async msg => {
   log(1, 'Searching for audio assets')
   const { items: audios } = await getAudios(spec)
 
-  log(2, 'Adding fade to audio tracks')
+  let audio = audios.map(({ file }) => file)
 
-  const tasks = audios.map((a, i) => async () => {
-    log(2.1, `parallel(${i + 1}/${MAX_PARALLEL}): Processing audio ${a.file}`)
-    const out = await fade(a)
-    log(
-      2.1,
-      `parallel(${i + 1}/${MAX_PARALLEL}): Processed audio ${a.file} --> ${out}`
-    )
-    return out
-  })
+  if (spec.audio.fade) {
+    log(2, 'Adding fade to audio tracks')
 
-  let audio = await parallelLimit(tasks, MAX_PARALLEL)
-  console.log('PARALLEL AUDIOS', audio)
+    const tasks = audios.map((a, i) => async () => {
+      log(
+        2.1,
+        `parallel(${i + 1}/${
+          audios.length
+        }@${MAX_PARALLEL}): Processing audio ${a.file}`
+      )
+      const out = await fade(a)
+      log(
+        2.1,
+        `parallel(${i + 1}/${audios.length}@${MAX_PARALLEL}): Processed audio ${
+          a.file
+        } --> ${out}`
+      )
+      return out
+    })
+
+    audio = await parallelLimit(tasks, MAX_PARALLEL)
+    console.log('PARALLEL AUDIOS', audio)
+  }
 
   log(3, 'Concatenating audio tracks')
   audio = await concatmp3(audio)
@@ -36,8 +47,10 @@ parentPort.on('message', async msg => {
   log(4, 'Looping audio to duration')
   audio = await loop(audio, duration)
 
-  log(5, 'Adding fade to audio')
-  audio = await fade({ file: audio, duration })
+  if (spec.audio.fade) {
+    log(5, 'Adding fade to audio')
+    audio = await fade({ file: audio, duration })
+  }
 
   parentPort.postMessage({ audio, audios })
 })

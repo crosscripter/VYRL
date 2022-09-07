@@ -2,6 +2,7 @@ const chalk = require('chalk')
 const _ = require('underscore')
 const subsrt = require('subsrt')
 const { join } = require('path')
+const striptags = require('striptags')
 const { Worker } = require('worker_threads')
 const { log, progress } = require('../logger')
 const { clean, tempName } = require('../utils')
@@ -23,6 +24,31 @@ const INTRO = 'intro-full.mp4'
 const OUTRO = 'outro-full-fade.mp4'
 const WATERMARK = 'watermark.gif'
 
+const brand = {
+  creator: 'VYRL Videos (Michael Schutt)',
+  source: 'VYRL :: AI Video Generation Engine',
+  video: { source: `Pexels (https://pexels.com/)` },
+  audio: { source: `Pixabay (https://pixabay.com/)` },
+  streamUrl: 'https://youtube.com/',
+  website: 'https://vyrl.video',
+  newsletter: 'https://news.vyrl.video',
+  subscribe: 'https://bit.ly/3THzfR7',
+  playlist: 'https://bit.ly/3qfpprV',
+  linkUrl: 'https://linktr.ee/vyrlvideos',
+  socials: {
+    Facebook: 'https://www.facebook.com/vyrlvids',
+    Instagram: 'https://www.instagram.com/vyrl_videos',
+    Tumblr: 'https://vyrlvideos.tumblr.com/',
+    Reddit: 'https://www.reddit.com/user/VYRLVideos',
+    Tiktok: 'https://www.tiktok.com/@vyrlvideos',
+    Twitter: 'https://twitter.com/vyrl_videos',
+    Spotify: 'https://spotify.com/vyrlvideos',
+    Apple: 'https://music.apple.com/vyrlvideos',
+    YoutubeMusic: 'https://bit.ly/3qfpprV',
+    AmazonMusic: 'https://music.amazon.com/vyrlvideos',
+  },
+}
+
 const getAssets = (type, service) => async spec => {
   let i = 0
   const {
@@ -41,10 +67,10 @@ const getAssets = (type, service) => async spec => {
       items = await service.search(theme, MAX_PER_PAGE)
       continue
     }
-    const { name = 'Video', artist = 'Anonymous', url } = item
+    const { name = type, artist = 'Anonymous', url } = item
     if (!url) continue
     const file = await download(type, url)
-    const duration = item?.duration ?? getMp3duration(readFileSync(file))
+    const duration = item?.duration ?? getMp3duration(readFileSync(file)) / 1000
     log(
       chalk`{blue {bold download}}: (${assets.items.length}) Downloading`,
       name,
@@ -105,7 +131,67 @@ const generateCaptions = async (videos, audios) => {
   const content = subsrt.build(captions, { format: 'srt' })
   writeFileSync(out, content)
   log('captions generated at', out)
-  return out
+  return { file: out, lines: captions }
+}
+
+const generateDescription = async (spec, captions) => {
+  const { audio, video } = spec
+  const { lines: tracks } = captions
+
+  const toTime = seconds => {
+    const date = new Date(null)
+    date.setSeconds(seconds / 1000)
+    return date.toISOString().substr(11, 8)
+  }
+
+  return `
+VYRL Videos -- The BEST of the web!
+
+${audio.theme} ${video.theme} video for feeling that ${
+    audio.theme
+  } vibe and enjoying ${video.theme} scenes!
+VYRL provides videos to Fall asleep to, beautiful nature videos to relax to, 
+including soothing, meditation and relaxation music for sleeping, focus, studying and more! 
+
+----------------------
+Be sure to like and subscribe for more content ${brand.subscribe}
+Stream or download music from VYRL at ${brand.streamUrl}
+
+----------------------
+💿 Tracks 
+${tracks
+  .map(
+    ({ start, end, text }) =>
+      `${toTime(start)} - ${toTime(end)} ${striptags(
+        text.replace(/\{\\an1\}/g, '')
+      )}`
+  )
+  .join('\n')}
+
+----------------------
+Follow Us all over the web! 
+VYRL :: ${brand.linkUrl}
+${Object.entries(brand.socials)
+  .map(([name, url]) => `${name}: ${url}`)
+  .join('\n')}
+
+----------------------
+Music courtesy of ${brand.audio.source} 
+Footage/photos courtesy of ${brand.video.source}
+
+----------------------
+Check out our website at: ${brand.website} 
+Binge watch even more VIRAL videos at: ${brand.playlist}
+Get a free music download and stay updated with our newsletter: 
+${brand.newsletter}
+
+----------------------
+© Copyright ${brand.creator} ${new Date().getFullYear()}
+Video/Audio created by ${brand.source}
+
+#️ Relevant hashtags:
+${video.hashtags}
+`
 }
 
 const Producer = spec => type => {
@@ -121,8 +207,50 @@ const Producer = spec => type => {
   })
 }
 
+const rainVideo = async duration => {
+  duration += 13
+  const log = progress.bind(this, 'rainVideo', 9)
+  console.time()
+
+  log(1, 'Downloading rain video')
+  let {
+    items: [{ file: video }],
+  } = await getVideos({
+    duration: 1,
+    video: { theme: 'rain rainfall raining storm thunder lightning' },
+  })
+  console.log('rain video', video)
+
+  log(2, 'Downloading rain audio')
+  let audio = 'rain.mp3'
+
+  log(3, 'Looping audio to duration')
+  audio = await loop(audio, duration)
+
+  log(4, 'Watermarking video')
+  video = await watermark([video, WATERMARK])
+
+  log(5, 'looping video to duration')
+  video = await loop(video, duration)
+
+  log(6, 'Adding intro/outro to video')
+  video = await concatmp4([INTRO, video, OUTRO])
+
+  log(7, 'Mixing audio into video')
+  video = await concatAV([video, audio])
+
+  log(8, 'Cleaning up temp files')
+  const result = video.replace(/temp/g, 'out')
+  renameSync(video, result)
+  clean()
+
+  console.timeEnd()
+  log(9, 'Rain video produced at', result)
+  return result
+}
+
 const produce = async spec => {
-  const log = progress.bind(this, 'producer', 8)
+  const log = progress.bind(this, 'producer', 9)
 
   console.time()
   const { duration } = spec
@@ -141,11 +269,14 @@ const produce = async spec => {
   const producers = [producer('video'), producer('audio')]
   let [{ video, videos }, { audio, audios }] = await Promise.all(producers)
 
-  log(3, 'Generating video/audio captions')
-  const captions = await generateCaptions(videos, audios)
+  let captions = { lines: [] }
+  if (spec.captions) {
+    log(3, 'Generating video/audio captions')
+    captions = await generateCaptions(videos, audios)
 
-  log(4, 'Burning in subtitles')
-  video = await subtitle([video, captions])
+    log(4, 'Burning in subtitles')
+    video = await subtitle([video, captions.file])
+  }
 
   log(5, 'Concatenating intro and outro to video')
   video = await concatmp4([INTRO, video, OUTRO])
@@ -160,7 +291,7 @@ const produce = async spec => {
 
   console.timeEnd()
 
-  log(8, chalk`Video produced successfully!\n\n{bold {green ${result}}}`, {
+  log(8, chalk`Video produced successfully!\n\n{bold {green ${result}}}\n`, {
     spec,
     video,
     videoCount: videos.length,
@@ -168,6 +299,9 @@ const produce = async spec => {
     audioCount: audios.length,
     result,
   })
+
+  log(9, 'Generating description')
+  console.log(await generateDescription(spec, captions))
 }
 
 module.exports = {
@@ -175,4 +309,5 @@ module.exports = {
   getVideos,
   getAudios,
   WATERMARK,
+  rainVideo,
 }

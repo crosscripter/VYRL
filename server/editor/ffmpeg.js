@@ -18,7 +18,7 @@ const options = {
   CONCAT_AUDIO_VIDEO: '-c copy -map 0:v -map 1:a',
   REFRAME: scale => `-filter:v setpts=${scale}*PTS`,
   TRANSCODE: '-c copy -bsf:v h264_mp4toannexb -f mpegts',
-  SUBTITLE: file => `-vf subtitles=${file}:force_style='Shadow=0,MarginV=10'`,
+  SUBTITLE: file => `-vf subtitles=${file}`, //:force_style='Shadow=0,MarginV=12,MarginH=12'`,
   SCALE: `-vf scale=w=1920:h=1080:force_original_aspect_ratio=1:out_color_matrix=bt709:flags=lanczos,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:#001326`,
 }
 
@@ -39,7 +39,6 @@ const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions) => {
     inputOptions = inputOptions?.split(' ') ?? []
     outputOptions = outputOptions?.split(' ') ?? []
 
-    // if (!inputOptions.length) inputOptions.push(`-threads ${cpus().length / 2}`)
     const out = tempName(ext)
 
     inputs = Array.isArray(inputs) ? inputs : [inputs]
@@ -58,6 +57,11 @@ const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions) => {
     )
 
     let $ffmpeg = ffmpeg()
+
+    if (!inputOptions.length) {
+      $ffmpeg = $ffmpeg.addOption('-threads 1')
+    }
+
     inputs.forEach(input => ($ffmpeg = $ffmpeg.addInput(input)))
     if (inputOptions.length) $ffmpeg = $ffmpeg.inputOptions(...inputOptions)
 
