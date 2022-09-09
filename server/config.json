@@ -1,6 +1,38 @@
 {
-  "media_types": {
-    "mp3": "audio",
-    "mp4": "video"
+  "MAX_PER_PAGE": 70,
+  "INTRO": "intro-full.mp4",
+  "WATERMARK": "watermark.gif",
+  "OUTRO": "outro-full-fade.mp4",
+  "ASSET_BASE": "./server/public",
+  "EXTS": { "video": "mp4", "audio": "mp3" },
+  "PIXABAY_URL": "https://pixabay.com/music/search/",
+  "PEXELS_API_KEY": "563492ad6f91700001000001e841f3975d3f4ca18c5b020bd7109fe6",
+  "brand": {
+    "creator": "VYRL Videos (Michael Schutt)",
+    "source": "VYRL :: AI Video Generation Engine",
+    "video": {
+      "source": "Pexels (https://pexels.com/)"
+    },
+    "audio": {
+      "source": "Pixabay (https://pixabay.com/)"
+    },
+    "streamUrl": "https://youtube.com/",
+    "website": "https://vyrl.video",
+    "newsletter": "https://news.vyrl.video",
+    "subscribe": "https://bit.ly/3THzfR7",
+    "playlist": "https://bit.ly/3qfpprV",
+    "linkUrl": "https://linktr.ee/vyrlvideos",
+    "socials": {
+      "Facebook": "https://www.facebook.com/vyrlvids",
+      "Instagram": "https://www.instagram.com/vyrl_videos",
+      "Tumblr": "https://vyrlvideos.tumblr.com/",
+      "Reddit": "https://www.reddit.com/user/VYRLVideos",
+      "Tiktok": "https://www.tiktok.com/@vyrlvideos",
+      "Twitter": "https://twitter.com/vyrl_videos",
+      "Spotify": "https://spotify.com/vyrlvideos",
+      "Apple": "https://music.apple.com/vyrlvideos",
+      "YoutubeMusic": "https://bit.ly/3qfpprV",
+      "AmazonMusic": "https://music.amazon.com/vyrlvideos"
+    }
   }
 }

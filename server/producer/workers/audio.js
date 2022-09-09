@@ -1,15 +1,12 @@
-const { cpus } = require('os')
 const { parallelLimit } = require('async')
 const { progress } = require('../../logger')
 const { parentPort } = require('worker_threads')
-const { getAudios } = require('../../producer')
+const { getAudios } = require('../../downloader')
 const { concatmp3, loop, fade } = require('../../editor/ffmpeg')
-
-const MAX_PARALLEL = cpus().length
 
 parentPort.on('message', async msg => {
   const log = progress.bind(this, 'audio', 5)
-  const { spec } = msg
+  const { spec, PARALLEL_LIMIT } = msg
   const { duration } = spec
 
   log(1, 'Searching for audio assets')
@@ -17,29 +14,18 @@ parentPort.on('message', async msg => {
 
   let audio = audios.map(({ file }) => file)
 
-  if (spec.audio.fade) {
-    log(2, 'Adding fade to audio tracks')
-
-    const tasks = audios.map((a, i) => async () => {
-      log(
-        2.1,
-        `parallel(${i + 1}/${
-          audios.length
-        }@${MAX_PARALLEL}): Processing audio ${a.file}`
-      )
-      const out = await fade(a)
-      log(
-        2.1,
-        `parallel(${i + 1}/${audios.length}@${MAX_PARALLEL}): Processed audio ${
-          a.file
-        } --> ${out}`
-      )
+  log(2, 'Adding fade to audio tracks')
+  audio = await parallelLimit(
+    audios.map((a, i) => async () => {
+      let out = a.file
+      const header = `parallel(${i + 1}/${audios.length}@${PARALLEL_LIMIT})`
+      log(2.1, `${header}: Processing audio ${out}`)
+      if (spec.audio.fade) out = await fade(a)
+      log(2.1, `${header}: Processed audio ${a.file} --> ${out}`)
       return out
-    })
-
-    audio = await parallelLimit(tasks, MAX_PARALLEL)
-    console.log('PARALLEL AUDIOS', audio)
-  }
+    }),
+    PARALLEL_LIMIT
+  )
 
   log(3, 'Concatenating audio tracks')
   audio = await concatmp3(audio)

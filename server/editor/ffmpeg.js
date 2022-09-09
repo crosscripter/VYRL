@@ -1,8 +1,8 @@
-require('dotenv').config()
 const sharp = require('sharp')
 const chalk = require('chalk')
 const _ = require('underscore')
 const { log } = require('../logger')
+const { ASSET_BASE } = require('../config')
 const { join, parse, resolve } = require('path')
 const { unlinkSync, existsSync, mkdirSync, readdirSync } = require('fs')
 const { resolveFiles, fileExt, tempName } = require('../utils')
@@ -10,8 +10,6 @@ const { resolveFiles, fileExt, tempName } = require('../utils')
 const ffmpeg = require('fluent-ffmpeg')
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
 ffmpeg.setFfmpegPath(ffmpegPath)
-
-const { ASSET_BASE } = process.env
 
 const options = {
   CAPTION: '-codec:a copy',
@@ -144,7 +142,7 @@ const fade = async ({ file, duration }) => {
 }
 
 const frames = async (video, I) => {
-  const name = parse(video).base
+  const name = parse(video).name
   const dir = `${ASSET_BASE}/${name}`
   if (!existsSync(dir)) mkdirSync(dir)
 

@@ -1,11 +1,17 @@
-require('dotenv').config()
 const chalk = require('chalk')
-const { ASSET_BASE } = process.env
 const { log } = require('./logger')
 const { join, parse } = require('path')
+const { ASSET_BASE } = require('./config')
 const { readdirSync, unlinkSync } = require('fs')
 
 const fileExt = file => parse(file).ext.slice(1).trim()
+
+const titleCase = str =>
+  str
+    .toLowerCase()
+    .split(' ')
+    .map(w => w.replace(w[0], w[0]?.toUpperCase()))
+    .join(' ')
 
 const tempName = ext =>
   `${ASSET_BASE}/${Math.random().toString(13).slice(2)}.temp.${ext}`
@@ -33,4 +39,4 @@ const clean = () => {
   })
 }
 
-module.exports = { resolveFiles, tempName, fileExt, clean }
+module.exports = { resolveFiles, tempName, fileExt, clean, titleCase }

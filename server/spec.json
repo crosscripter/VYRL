@@ -1,0 +1,15 @@
+{
+  "duration": 10,
+  "captions": false,
+  "audio": {
+    "fade": false,
+    "theme": "peaceful"
+  },
+  "video": {
+    "fade": false,
+    "scale": false,
+    "watermark": false,
+    "theme": "nature",
+    "hashtags": ["#nature #peacetoall"]
+  }
+}
