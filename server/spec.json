@@ -1,15 +1,19 @@
 {
-  "duration": 10,
-  "captions": true,
+  "duration": 1,
+  "captions": false,
   "audio": {
-    "fade": true,
-    "theme": "peaceful"
+    "fade": false,
+    "theme": "peaceful",
+    "files": ["audios/aylex - Sea (Uppbeat.io).mp3"]
   },
   "video": {
     "fade": false,
-    "scale": true,
+    "scale": false,
     "watermark": true,
     "theme": "nature",
-    "hashtags": ["#nature #peacetoall"]
+    "hashtags": ["#nature #peacetoall"],
+    "files": [
+      "videos/Michal Marek - Waves Rushing And Splashing To The Shore (Pexels).mp4"
+    ]
   }
 }

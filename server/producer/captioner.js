@@ -4,11 +4,12 @@ const subsrt = require('subsrt')
 const striptags = require('striptags')
 const { brand } = require('../config')
 const { writeFileSync } = require('fs')
-const { tempName } = require('../utils')
 const { progress } = require('../logger')
-const log = progress.bind(this, 'captioner', 10)
+const log = progress.bind(this, 'captioner', 5)
+const { tempName, titleCase } = require('../utils')
 
 const generateCaptions = async (videos, audios) => {
+  log(1, 'Generating captions')
   let pos = 0
 
   const captionText = (type, item) => {
@@ -18,29 +19,33 @@ const generateCaptions = async (videos, audios) => {
     const { name = type, artist = 'Anonymous' } = item
 
     return (
-      `{\\an1} <font size="10px">${icon} "<b>${name}</b>"</font><br/>` +
-      `<font size="8px">${artist} at ${source}</font>`
+      `{\\an1} <font size="9px" color="rgba(255,255,255,0.5)">${icon} "<b>${titleCase(
+        name
+      ).replace('&amp;', '&')}</b>"</font><br/>` +
+      `<font size="8px">${artist} (${source})</font>`
     )
   }
 
   const captionAs = type => item => {
     const start = pos * 1000
     pos += item.duration
-    return { start, end: pos * 1000 - 500, text: captionText(type, item) }
+    return { start, end: pos * 1000, text: captionText(type, item) }
   }
 
+  log(2, 'Generating video captions')
   const videoCaptions = videos.map(captionAs('video'))
 
+  log(3, 'Generating audio captions')
   pos = 0
   const audioCaptions = audios.map(captionAs('audio'))
   let captions = [...videoCaptions, ...audioCaptions]
   captions = _.sortBy(captions, o => o.start)
-  log(chalk`{blue {bold captions}}: Generated captions`, captions)
 
+  log(4, 'Writing captions SRT subtitle file')
   const out = tempName('srt')
   const content = subsrt.build(captions, { format: 'srt' })
   writeFileSync(out, content)
-  log('captions generated at', out)
+  log(5, 'Captions generated at', out)
   return { file: out, lines: captions }
 }
 

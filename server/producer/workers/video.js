@@ -1,10 +1,8 @@
 const { parallelLimit } = require('async')
 const { progress } = require('../../logger')
-const { WATERMARK } = require('../../config')
 const { parentPort } = require('worker_threads')
 const { getVideos } = require('../../downloader')
-
-const { watermark, concatmp4, fade, scale } = require('../../editor/ffmpeg')
+const { concatmp4, fade } = require('../../editor/ffmpeg')
 
 parentPort.on('message', async msg => {
   const log = progress.bind(this, 'video', 5)
@@ -29,12 +27,6 @@ parentPort.on('message', async msg => {
 
   log(3, 'Concatenating video clips')
   video = await concatmp4(video)
-
-  log(4, 'Scaling video to full HD')
-  if (spec.video.scale) video = await scale(video)
-
-  log(5, 'Watermarking video')
-  if (spec.video.watermark) video = await watermark([video, WATERMARK])
 
   parentPort.postMessage({ video, videos })
 })

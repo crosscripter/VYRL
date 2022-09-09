@@ -1,7 +1,7 @@
 {
   "MAX_PER_PAGE": 70,
   "INTRO": "intro-full.mp4",
-  "WATERMARK": "watermark.gif",
+  "WATERMARK": "watermark.png",
   "OUTRO": "outro-full-fade.mp4",
   "ASSET_BASE": "./server/public",
   "EXTS": { "video": "mp4", "audio": "mp3" },

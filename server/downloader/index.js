@@ -60,8 +60,7 @@ const getAssets = (type, service) => async spec => {
   }
 
   log(
-    chalk`{blue {bold search}}: Found ${assets.items.length} ${theme} ${type}(s)`,
-    assets
+    chalk`{blue {bold search}}: Found ${assets.items.length} ${theme} ${type}(s)`
   )
   return assets
 }
