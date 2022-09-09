@@ -35,7 +35,10 @@ const produce = async spec => {
       worker.postMessage({ spec, PARALLEL_LIMIT })
       worker.on('message', async msg => {
         console.timeEnd(type)
-        log(chalk`{bold {blue ${type}}}: Result from ${type} producer`, msg)
+        console.log(
+          chalk`{bold {blue ${type}}}: Result from ${type} producer`,
+          msg
+        )
         return resolve(msg)
       })
     })
