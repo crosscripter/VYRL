@@ -2,8 +2,8 @@ const sharp = require('sharp')
 const chalk = require('chalk')
 const _ = require('underscore')
 const { log } = require('../logger')
-const { ASSET_BASE } = require('../config')
 const { join, parse, resolve } = require('path')
+const { WATERMARK, ASSET_BASE } = require('../config')
 const { unlinkSync, existsSync, mkdirSync, readdirSync } = require('fs')
 const { resolveFiles, fileExt, tempName } = require('../utils')
 
@@ -27,17 +27,14 @@ const options = {
 
 const filters = {
   FADE: duration => `fade=t=in:st=0:d=2,fade=t=out:st=${+duration - 2}:d=2`,
-  VOICEOVER:
+  VOICEOVER: () =>
     '[0:0]volume=0.3[a];[1:0]volume=2.0[b];[a][b]amix=inputs=2:duration=longest',
+  WATERMARK_IMAGE: () =>
+    `[1][0]scale2ref=w=oh*mdar:h=ih*0.1[logo][video];[video][logo]overlay=20:20`,
+  WATERMARK: () =>
+    `${filters.WATERMARK_IMAGE()}:enable='gte(t,3)':format=auto,format=yuv420p;[1]format=rgba,colorchannelmixer=aa=0.5[1]`,
   DRAWTEXT: (text, x, y, font = 'verdana', size = 50, color = 'white') =>
     `drawtext=fontfile='${font}':text=${text}:fontcolor=${color}:shadowcolor=#000000@0.75:shadowx=30:shadowy=20:fontsize=H/3.3:x=${x}:y=H-th-${y}-30`,
-  WATERMARK_IMAGE:
-    `[1][0]scale2ref=w=oh*mdar:h=ih*0.3[logo][video];` +
-    `[video][logo]overlay=W-w-5:5`,
-  WATERMARK:
-    `[1][0]scale2ref=w=oh*mdar:h=ih*0.08[logo][video];` +
-    `[video][logo]overlay=10:10:enable='gte(t,3)':format=auto,format=yuv420p;` +
-    `[1]format=rgba,colorchannelmixer=aa=0.25[1]`,
 }
 
 const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions, output) => {
@@ -102,14 +99,14 @@ const wav2mp3 = async wav => await _ffmpeg(wav, 'mp3')
 const transcode = async file => await _ffmpeg(file, 'ts', options.TRANSCODE)
 
 const voiceOver = async files =>
-  await _ffmpeg(files, 'mp3', '-y', filters.VOICEOVER)
+  await _ffmpeg(files, 'mp3', '-y', filters.VOICEOVER())
 
 const watermark = async (files, ext = 'mp4') =>
   await _ffmpeg(
     files,
     ext,
     ext === 'mp4' ? '-c:a copy' : null,
-    ext === 'mp4' ? filters.WATERMARK : filters.WATERMARK_IMAGE
+    (ext === 'mp4' ? filters.WATERMARK : filters.WATERMARK_IMAGE)()
   )
 
 const reframe = async (video, scale = 2.0) =>
@@ -225,9 +222,9 @@ const thumbnail = async (video, name) => {
     '[1]scale=iw/1.8:-1[b];[0:v][b] overlay=W-w-20:H-h-30'
   )
 
-  const WATERMARK = 'watermark.png'
-  log(`thumb: Watermarking VYRL logo...`, _4ked, WATERMARK)
-  const out = await watermark([_4ked, WATERMARK], 'png')
+  const watermarkImage = WATERMARK.replace(/.gif/g, '.png')
+  log(`thumb: Watermarking VYRL logo...`, _4ked, watermarkImage)
+  const out = await watermark([_4ked, watermarkImage], 'png')
   return out
 }
 

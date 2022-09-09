@@ -1,3 +1,4 @@
+const chalk = require('chalk')
 const _ = require('underscore')
 const subsrt = require('subsrt')
 const striptags = require('striptags')
