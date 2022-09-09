@@ -4,18 +4,11 @@ const { WATERMARK } = require('../../config')
 const { parentPort } = require('worker_threads')
 const { getVideos } = require('../../downloader')
 
-const {
-  watermark,
-  concatmp4,
-  loop,
-  fade,
-  scale,
-} = require('../../editor/ffmpeg')
+const { watermark, concatmp4, fade, scale } = require('../../editor/ffmpeg')
 
 parentPort.on('message', async msg => {
-  const log = progress.bind(this, 'video', 6)
+  const log = progress.bind(this, 'video', 5)
   const { spec, PARALLEL_LIMIT } = msg
-  const { duration } = spec
 
   log(1, 'Searching for video assets')
   const { items: videos } = await getVideos(spec)
@@ -42,9 +35,6 @@ parentPort.on('message', async msg => {
 
   log(5, 'Watermarking video')
   if (spec.video.watermark) video = await watermark([video, WATERMARK])
-
-  log(6, 'Looping video to duration')
-  video = await loop(video, duration)
 
   parentPort.postMessage({ video, videos })
 })

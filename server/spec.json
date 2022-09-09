@@ -1,14 +1,14 @@
 {
   "duration": 10,
-  "captions": false,
+  "captions": true,
   "audio": {
-    "fade": false,
+    "fade": true,
     "theme": "peaceful"
   },
   "video": {
     "fade": false,
-    "scale": false,
-    "watermark": false,
+    "scale": true,
+    "watermark": true,
     "theme": "nature",
     "hashtags": ["#nature #peacetoall"]
   }
