@@ -1,5 +1,5 @@
-import { createTheme } from '@material-ui/core/styles';
-import red from '@material-ui/core/colors/red';
+import { createTheme } from '@material-ui/core/styles'
+import red from '@material-ui/core/colors/red'
 
 export const theme = createTheme({
   palette: {
@@ -13,7 +13,7 @@ export const theme = createTheme({
       main: red.A400,
     },
     background: {
-      default: '#fff',
+      default: '#001326',
     },
   },
-});
+})
