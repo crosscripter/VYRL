@@ -19,6 +19,7 @@ const tempName = ext =>
 const resolveFiles = files =>
   files.map(f => {
     if (f?.startsWith(ASSET_BASE)) return f
+    if (f?.startsWith('C:')) return f
     return `${ASSET_BASE}/${f}`
   })
 
@@ -39,4 +40,10 @@ const clean = () => {
   })
 }
 
-module.exports = { resolveFiles, tempName, fileExt, clean, titleCase }
+const toTime = seconds => {
+  const date = new Date(null)
+  date.setSeconds(seconds / 1000)
+  return date.toISOString().substr(11, 8)
+}
+
+module.exports = { resolveFiles, tempName, fileExt, clean, titleCase, toTime }

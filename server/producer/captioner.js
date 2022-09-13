@@ -1,4 +1,3 @@
-const chalk = require('chalk')
 const _ = require('underscore')
 const subsrt = require('subsrt')
 const striptags = require('striptags')
@@ -6,7 +5,7 @@ const { brand } = require('../config')
 const { writeFileSync } = require('fs')
 const { progress } = require('../logger')
 const log = progress.bind(this, 'captioner', 5)
-const { tempName, titleCase } = require('../utils')
+const { toTime, tempName, titleCase } = require('../utils')
 
 const generateCaptions = async (videos, audios) => {
   log(1, 'Generating captions')
@@ -19,16 +18,16 @@ const generateCaptions = async (videos, audios) => {
     const { name = type, artist = 'Anonymous' } = item
 
     return (
-      `{\\an1} <font size="9px" color="rgba(255,255,255,0.5)">${icon} "<b>${titleCase(
-        name
-      ).replace('&amp;', '&')}</b>"</font><br/>` +
-      `<font size="8px">${artist} (${source})</font>`
+      `{\\an1} <font size="9px">${icon} "<b>${titleCase(name).replace(
+        '&amp;',
+        '&'
+      )}</b>"</font><br/>` + `<font size="8px">${artist} (${source})</font>`
     )
   }
 
   const captionAs = type => item => {
     const start = pos * 1000
-    pos += item.duration
+    pos += parseInt(item.duration, 10) ?? 0
     return { start, end: pos * 1000, text: captionText(type, item) }
   }
 
@@ -52,12 +51,6 @@ const generateCaptions = async (videos, audios) => {
 const generateDescription = async (spec, captions) => {
   const { audio, video } = spec
   const { lines: tracks } = captions
-
-  const toTime = seconds => {
-    const date = new Date(null)
-    date.setSeconds(seconds / 1000)
-    return date.toISOString().substr(11, 8)
-  }
 
   return `
 VYRL Videos -- The BEST of the web!

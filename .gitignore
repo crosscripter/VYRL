@@ -107,6 +107,6 @@ dist
 # Video and audio assets
 server/public/*.*
 .ts
-
-brand/welcome.mp4
-brand/VYRL.mp4
+server/public/assets/audios/*
+server/public/assets/videos/*
+server/public/uploads/*

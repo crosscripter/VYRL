@@ -1,19 +1,15 @@
 {
-  "duration": 1,
-  "captions": false,
+  "duration": 3600,
+  "captions": true,
   "audio": {
-    "fade": false,
-    "theme": "peaceful",
-    "files": ["audios/aylex - Sea (Uppbeat.io).mp3"]
+    "fade": true,
+    "theme": "ambient"
   },
   "video": {
-    "fade": false,
-    "scale": false,
+    "fade": true,
+    "scale": true,
     "watermark": true,
-    "theme": "nature",
-    "hashtags": ["#nature #peacetoall"],
-    "files": [
-      "videos/Michal Marek - Waves Rushing And Splashing To The Shore (Pexels).mp4"
-    ]
+    "theme": "stars space galaxy universe",
+    "hashtags": ["#space #stars #universe #ambient"]
   }
 }

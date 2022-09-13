@@ -1,9 +1,18 @@
+const sharp = require('sharp')
 const chalk = require('chalk')
 const _ = require('underscore')
-const { unlinkSync } = require('fs')
+const {
+  statSync,
+  unlinkSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  writeFileSync,
+  copyFileSync,
+} = require('fs')
 const { log, progress } = require('../logger')
-const { join, resolve } = require('path')
-const { WATERMARK } = require('../config')
+const { parse, join, resolve } = require('path')
+const { ASSET_BASE, WATERMARK } = require('../config')
 const { resolveFiles, fileExt, tempName } = require('../utils')
 
 const ffmpeg = require('fluent-ffmpeg')
@@ -21,7 +30,7 @@ const options = {
   CONCAT_AUDIO_VIDEO: '-c copy -map 0:v -map 1:a',
   WATERMARK: '-c:a copy -crf 18 -preset ultrafast',
   REFRAME: scale => `-filter:v setpts=${scale}*PTS`,
-  TRANSCODE: '-c copy -bsf:v h264_mp4toannexb -f mpegts',
+  TRANSCODE: '-c copy -f mpegts', // -bsf:v h264_mp4toannexb -f mpegts',
   SUBTITLE: file => `-vf subtitles=${file}`,
   SCALE: `-vf scale=w=1920:h=1080:force_original_aspect_ratio=1:out_color_matrix=bt709:flags=lanczos,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:#001326`,
 }
@@ -165,10 +174,11 @@ const thumbnail = async (video, name) => {
 
   log(3, 'Resolving font path')
   const title = name.split(' ').join('\n')
-  const font = join(resolve('./'), 'server/public', 'Roboto-Black.ttf').replace(
-    /([\:\\])/g,
-    '\\$1'
-  )
+  const font = join(
+    resolve('./'),
+    'server/public/assets',
+    'Roboto-Black.ttf'
+  ).replace(/([\:\\])/g, '\\$1')
 
   log(4, 'Adding title to thumbnail', title.toUpperCase())
   const titled = await _ffmpeg(
@@ -178,7 +188,7 @@ const thumbnail = async (video, name) => {
     filters.DRAWTEXT(title.toUpperCase(), 10, 10, font, 360, 'white')
   )
 
-  const badge = '4K.png'
+  const badge = `${ASSET_BASE}/assets/4K.png`
   log(5, 'Adding quality badge to thumbnail', badge)
   const badged = await _ffmpeg([titled, badge], 'png', null, filters.BADGE())
 

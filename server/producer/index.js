@@ -1,13 +1,20 @@
 const chalk = require('chalk')
 const { join } = require('path')
-const { clean } = require('../utils')
 const { progress } = require('../logger')
 const { Worker } = require('worker_threads')
+const { toTime, clean } = require('../utils')
 const getMp3Duration = require('get-mp3-duration')
-const { readFileSync, renameSync } = require('fs')
 const { WATERMARK, ASSET_BASE, INTRO, OUTRO } = require('../config')
 const { generateCaptions, generateDescription } = require('./captioner')
 const { default: getVideoDurationInSeconds } = require('get-video-duration')
+
+const {
+  readFileSync,
+  existsSync,
+  mkdirSync,
+  copyFileSync,
+  writeFileSync,
+} = require('fs')
 
 const {
   fade,
@@ -21,7 +28,7 @@ const {
   loop,
 } = require('../editor/ffmpeg')
 
-const log = progress.bind(this, 'producer', 15)
+const log = progress.bind(this, 'producer', 17)
 const PARALLEL_LIMIT = require('os').cpus().length
 
 const loadAssets = async items =>
@@ -35,10 +42,9 @@ const loadAssets = async items =>
       )
 
       info = JSON.parse(info)
-      const duration =
-        info.ext === 'mp3'
-          ? await getMp3Duration(readFileSync(name))
-          : getVideoDurationInSeconds(name)
+      const duration = await (info.ext === 'mp3'
+        ? getMp3Duration(readFileSync(name))
+        : getVideoDurationInSeconds(name))
 
       info = { ...info, file: name, duration }
       console.log('info=', JSON.stringify(info))
@@ -124,30 +130,73 @@ const produce = async spec => {
 
   log(11, 'Mixing audio into video and encoding media')
   video = await concatAV([video, audio])
-  const result = video.replace(/temp/g, 'out')
-  renameSync(video, result)
 
   log(12, 'Generating description')
   const description = await generateDescription(spec, captions)
 
   log(13, 'Generating thumbnail')
-  let thumb = await thumbnail(result, `${spec.audio.theme} ${spec.video.theme}`)
-  const thumbResult = thumb.replace(/temp/g, 'out')
-  renameSync(thumb, thumbResult)
+  let thumb = await thumbnail(video, `${spec.audio.theme} ${spec.video.theme}`)
 
-  log(14, 'Cleaning up temp files')
+  log(14, 'Writing output files')
+  const copyToDir = (file, name) => copyFileSync(file, `${dir}/${name}`)
+
+  const writeFile = (file, contents) =>
+    writeFileSync(`${dir}/${file}`, contents, 'utf8')
+
+  const hours = toTime(duration).split(':')[0].trim()
+  const title = `The BEST ${spec.audio.theme} Tracks and ${spec.video.theme} (${hours} HOURs!)`
+  const name = `${spec.audio.theme}_${spec.video.theme}_${new Date()
+    .toISOString()
+    .replace(/\W/g, '')
+    .slice(0, -1)}`
+
+  const dir = `./server/public/uploads/YouTube/${name}`
+  if (!existsSync(dir)) mkdirSync(dir)
+
+  log(14.1, 'Writing title')
+  writeFile('title.txt', title)
+
+  log(14.2, 'Writing description')
+  writeFile('description.txt', description)
+
+  log(14.3, 'Writing tags')
+  writeFile('tags.txt', spec.video.hashtags.join('\n'))
+
+  log(14.4, 'Copying audio', audio)
+  copyToDir(audio, 'audio.mp3')
+
+  log(14.5, 'Copying video', video)
+  copyToDir(video, 'video.mp4')
+
+  log(14.6, 'Copying thumbnail', thumb)
+  copyToDir(thumb, 'thumbnail.png')
+
+  if (spec.captions) {
+    log(14.7, 'Copying captions', captions.file)
+    copyToDir(captions.file, 'captions.srt')
+  }
+
+  log(16, 'Cleaning up temp files')
   clean()
 
   console.timeEnd('produce')
-  const product = { thumb: thumbResult, video: result, description }
-  log(15, chalk`Video produced successfully!\n\n{bold {green ${result}}}\n`, {
+
+  const product = {
     spec,
-    video: result,
-    videoCount: videos.length,
-    audio,
     audioCount: audios.length,
-    output: product,
-  })
+    videoCount: videos.length,
+    audio: `${dir}/audio.mp3`,
+    title,
+    duration,
+    video: `${dir}/video.mp4`,
+    outputDir: dir,
+  }
+
+  log(
+    17,
+    chalk`Video ${name} produced successfully!\n\n{bold {green ${dir}}}\n`,
+    product
+  )
 
   return product
 }
