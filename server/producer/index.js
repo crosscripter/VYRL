@@ -28,7 +28,6 @@ const {
   loop,
 } = require('../editor/ffmpeg')
 
-const log = progress.bind(this, 'producer', 17)
 const PARALLEL_LIMIT = require('os').cpus().length
 
 const loadAssets = async items =>
@@ -53,6 +52,7 @@ const loadAssets = async items =>
   )
 
 const produce = async spec => {
+  const log = progress.bind(this, 'producer', 17)
   console.time('produce')
   log(1, 'Producing video', spec)
 
@@ -201,4 +201,47 @@ const produce = async spec => {
   return product
 }
 
-module.exports = { produce }
+const produceRainVideo = async () => {
+  const spec = {
+    duration: 1,
+    audio: {
+      files: [
+        './server/public/assets/audios/Alexander - Rain sound (orangefreesounds.com).mp3',
+      ],
+    },
+    video: { theme: 'rain storm rainfall raining thunder lightning' },
+  }
+
+  const log = progress.bind(this, 'rainVideo', 3)
+  const { getVideos } = require('../downloader')
+
+  log(1, 'Producing rain video')
+  let { items: videos } = await getVideos(spec)
+  let video = videos.map(({ file }) => file)
+
+  log(2, 'Concatting videos together', video)
+  video = await concatmp4(video)
+
+  log(3, 'scale video to full HD')
+  video = await scale(video)
+
+  log(4, 'Watermarking video')
+  video = await watermark([video, WATERMARK])
+
+  log(5, 'Adding intro and outro')
+  video = await concatmp4([INTRO, video, OUTRO])
+
+  log(6, 'Looping audio to video duration')
+  let [audio] = spec.audio.files
+  const duration = 60 * 60 // await getVideoDurationInSeconds(video)
+  audio = await loop(audio, duration)
+
+  log(7, 'Mixing in rain audio')
+  video = await concatAV([video, audio])
+
+  let product = { spec, video }
+  log(8, 'Rain video produced', { spec, video })
+  return product
+}
+
+module.exports = { produce, produceRainVideo }

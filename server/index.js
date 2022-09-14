@@ -16,5 +16,15 @@ app.listen(3000, async () => {
   console.clear()
   log(`Server launched at ${SERVER_URL} 🚀`)
 
+  // const { produceRainVideo } = require('./producer')
+  // await produceRainVideo(spec)
+
+  const { overlay } = require('./editor/ffmpeg')
+
+  log('Overlaying subscribe animation')
+  await overlay(
+    './server/public/assets/videos/countdown.mp4',
+    'C:/users/cross/Code/VYRL/server/public/assets/subscribe.mp4'
+  )
   log('done')
 })

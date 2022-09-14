@@ -14,6 +14,7 @@ const { log, progress } = require('../logger')
 const { parse, join, resolve } = require('path')
 const { ASSET_BASE, WATERMARK } = require('../config')
 const { resolveFiles, fileExt, tempName } = require('../utils')
+const { default: getVideoDurationInSeconds } = require('get-video-duration')
 
 const ffmpeg = require('fluent-ffmpeg')
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
@@ -41,12 +42,12 @@ const filters = {
   FADE: duration => `fade=t=in:st=0:d=5,fade=t=out:st=${+duration - 3}:d=5`,
   VOICEOVER: () =>
     '[0:0]volume=0.3[a];[1:0]volume=2.0[b];[a][b]amix=inputs=2:duration=longest',
-  WATERMARK_IMAGE: (scale = 0.15) =>
+  WATERMARK_IMAGE: (scale = 0.125) =>
     `[1][0]scale2ref=w=oh*mdar:h=ih*${scale}[logo][video];[video][logo]overlay=30:22`,
   WATERMARK: scale =>
     `${filters.WATERMARK_IMAGE(
       scale
-    )}:enable='gte(t,3)':format=auto,format=yuv420p;[1]format=rgba,colorchannelmixer=aa=0.25[1]`,
+    )}:enable='gte(t,3)':format=auto,format=yuv420p;[1]format=rgba,colorchannelmixer=aa=0.5[1]`,
   DRAWTEXT: (text, x, y, font = 'verdana', size = 50, color = 'white') =>
     `drawtext=fontfile='${font}':text=${text}:fontcolor=${color}:shadowcolor=#000000@0.75:shadowx=30:shadowy=20:fontsize=H/3.3:x=${x}:y=H-th-${y}-30`,
   SHADOW_TOP: () =>
@@ -198,6 +199,20 @@ const thumbnail = async (video, name) => {
   return await watermark([badged, WATERMARK_PNG], 'png', 0.3)
 }
 
+const overlay = async (input, green) => {
+  const duration = await getVideoDurationInSeconds(input)
+  const length = await getVideoDurationInSeconds(green)
+  const start = (duration / 8).toFixed(0)
+  const end = (duration + length).toFixed(0)
+
+  return await _ffmpeg(
+    [input, green],
+    'mp4',
+    '-map [out] -map 0:a? -c:a copy -crf 18 -preset ultrafast',
+    `[1][0]scale2ref=w=oh*mdar:h=ih*1[1:v][0];[1:v]setpts=PTS+${start}/TB,colorkey=0x00ff00:0.4:0.2[ovrl],[0:0][ovrl]overlay=enable='between(t\,${start}\,${end})':x=W-w-30:y=H-h-50:eof_action=pass[out]`
+  )
+}
+
 module.exports = {
   concatmp3,
   concatmp4,
@@ -211,4 +226,5 @@ module.exports = {
   fade,
   scale,
   thumbnail,
+  overlay,
 }
