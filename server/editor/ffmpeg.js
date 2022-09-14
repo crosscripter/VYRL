@@ -1,17 +1,8 @@
-const sharp = require('sharp')
 const chalk = require('chalk')
 const _ = require('underscore')
-const {
-  statSync,
-  unlinkSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  writeFileSync,
-  copyFileSync,
-} = require('fs')
+const { unlinkSync } = require('fs')
+const { join, resolve } = require('path')
 const { log, progress } = require('../logger')
-const { parse, join, resolve } = require('path')
 const { ASSET_BASE, WATERMARK } = require('../config')
 const { resolveFiles, fileExt, tempName } = require('../utils')
 const { default: getVideoDurationInSeconds } = require('get-video-duration')
@@ -24,6 +15,8 @@ const options = {
   CAPTION: '-codec:a copy',
   CONCATMP3: '-acodec copy',
   LOOP_INPUT: `-stream_loop -1`,
+  TRANSCODE: '-c copy -f mpegts',
+  SUBTITLE: file => `-vf subtitles=${file}`,
   CONCATMP4: '-c copy -bsf:a aac_adtstoasc',
   LOOP_OUTPUT: secs => `-c copy -t ${secs}`,
   THUMBNAIL: '-ss 3 -frames:v 1 -q:v 2 -r 1/1',
@@ -31,15 +24,14 @@ const options = {
   CONCAT_AUDIO_VIDEO: '-c copy -map 0:v -map 1:a',
   WATERMARK: '-c:a copy -crf 18 -preset ultrafast',
   REFRAME: scale => `-filter:v setpts=${scale}*PTS`,
-  TRANSCODE: '-c copy -f mpegts', // -bsf:v h264_mp4toannexb -f mpegts',
-  SUBTITLE: file => `-vf subtitles=${file}`,
+  OVERLAY: '-map [out] -map 0:a? -c:a copy -crf 18 -preset ultrafast',
   SCALE: `-vf scale=w=1920:h=1080:force_original_aspect_ratio=1:out_color_matrix=bt709:flags=lanczos,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:#001326`,
 }
 
 const filters = {
   THUMBNAIL: () => '-skip_frame nokey',
   BADGE: () => '[1]scale=iw/1.5:-1[b];[0:v][b] overlay=W-w-30:24',
-  FADE: duration => `fade=t=in:st=0:d=5,fade=t=out:st=${+duration - 3}:d=5`,
+  FADE: duration => `fade=t=in:st=0:d=5,fade=t=out:st=${+duration - 5}:d=5`,
   VOICEOVER: () =>
     '[0:0]volume=0.3[a];[1:0]volume=2.0[b];[a][b]amix=inputs=2:duration=longest',
   WATERMARK_IMAGE: (scale = 0.125) =>
@@ -54,6 +46,8 @@ const filters = {
     '[0]split[v0][v1];[v0]crop=iw:ih/2,format=rgba,geq=r=0:g=0:b=0:a=255*(Y/H)[fg];[v1][fg]overlay=0:H-h:format=auto',
   SHADOW_BOTTOM: () =>
     '[0]split[v0][v1];[v0]crop=iw:ih/3,format=rgba,geq=r=0:g=0:b=0:a=-255*(Y/H)[fg];[v1][fg]overlay=0:-10:format=auto',
+  OVERLAY: (start, end) =>
+    `[1][0]scale2ref=w=oh*mdar:h=ih*1[1:v][0];[1:v]setpts=PTS+${start}/TB,colorkey=0x00ff00:0.4:0.2[ovrl],[0:0][ovrl]overlay=enable='between(t\,${start}\,${end})':x=W-w-30:y=H-h-50:eof_action=pass[out]`,
 }
 
 const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions, output) => {
@@ -186,10 +180,11 @@ const thumbnail = async (video, name) => {
     shadowed,
     'png',
     null,
-    filters.DRAWTEXT(title.toUpperCase(), 10, 10, font, 360, 'white')
+    filters.DRAWTEXT(title.toUpperCase(), 10, 10, font, 340, 'white')
   )
 
-  const badge = `${ASSET_BASE}/assets/4K.png`
+  const res = '4K' // '1080p'
+  const badge = `${ASSET_BASE}/assets/${res}.png`
   log(5, 'Adding quality badge to thumbnail', badge)
   const badged = await _ffmpeg([titled, badge], 'png', null, filters.BADGE())
 
@@ -199,17 +194,18 @@ const thumbnail = async (video, name) => {
   return await watermark([badged, WATERMARK_PNG], 'png', 0.3)
 }
 
-const overlay = async (input, green) => {
+const overlay = async files => {
+  let [input, green] = resolveFiles(files)
   const duration = await getVideoDurationInSeconds(input)
   const length = await getVideoDurationInSeconds(green)
-  const start = (duration / 8).toFixed(0)
+  const start = (duration / 3).toFixed(0)
   const end = (duration + length).toFixed(0)
 
   return await _ffmpeg(
     [input, green],
     'mp4',
-    '-map [out] -map 0:a? -c:a copy -crf 18 -preset ultrafast',
-    `[1][0]scale2ref=w=oh*mdar:h=ih*1[1:v][0];[1:v]setpts=PTS+${start}/TB,colorkey=0x00ff00:0.4:0.2[ovrl],[0:0][ovrl]overlay=enable='between(t\,${start}\,${end})':x=W-w-30:y=H-h-50:eof_action=pass[out]`
+    options.OVERLAY,
+    filters.OVERLAY(start, end)
   )
 }
 

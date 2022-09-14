@@ -4,9 +4,11 @@ const { progress } = require('../logger')
 const { Worker } = require('worker_threads')
 const { toTime, clean } = require('../utils')
 const getMp3Duration = require('get-mp3-duration')
-const { WATERMARK, ASSET_BASE, INTRO, OUTRO } = require('../config')
 const { generateCaptions, generateDescription } = require('./captioner')
 const { default: getVideoDurationInSeconds } = require('get-video-duration')
+const PARALLEL_LIMIT = require('os').cpus().length
+
+const { WATERMARK, ASSET_BASE, INTRO, OUTRO, SUBSCRIBE } = require('../config')
 
 const {
   readFileSync,
@@ -19,6 +21,7 @@ const {
 const {
   fade,
   scale,
+  overlay,
   watermark,
   concatAV,
   subtitle,
@@ -27,8 +30,6 @@ const {
   concatmp4,
   loop,
 } = require('../editor/ffmpeg')
-
-const PARALLEL_LIMIT = require('os').cpus().length
 
 const loadAssets = async items =>
   await Promise.all(
@@ -57,8 +58,17 @@ const produce = async spec => {
   log(1, 'Producing video', spec)
 
   const Producer = (type, spec) => {
-    return new Promise(resolve => {
+    return new Promise(async resolve => {
+      if (spec[type].files) {
+        log(1, `Loading ${type} assets from filesystem`, spec[type].files)
+        const assets = await loadAssets(spec[type].files)
+        const concatter = type === 'video' ? concatmp4 : concatmp3
+        const asset = assets.length > 1 ? await concatter(assets) : assets[0]
+        return { [type]: asset, [`${type}s`]: assets }
+      }
+
       console.time(type)
+      log(1, `Spawing new ${type} producer`)
       const worker = new Worker(join(__dirname, 'workers', `${type}.js`))
       worker.postMessage({ spec, PARALLEL_LIMIT })
 
@@ -71,37 +81,18 @@ const produce = async spec => {
   }
 
   log(2, 'Loading audio/video assets')
-  let video, audio
-  let videos = spec.video.files
-  let audios = spec.audio.files
-
-  if (videos) {
-    log(2.1, 'Loading videos from local assets', videos)
-    video = await concatmp4(videos)
-    videos = await loadAssets(videos)
-  } else {
-    log(2.2, 'Spawing video producer')
-    const result = await Producer('video', spec)
-    video = result.video
-    videos = result.videos
-  }
-
-  if (audios) {
-    log(2.3, 'Loading audios from local assets', audios)
-    audio = audios.length > 1 ? await concatmp3(audios) : audios[0]
-    audios = await loadAssets(audios)
-  } else {
-    log(2.4, 'Spawing audio producer')
-    const result = await Producer('audio', spec)
-    audio = result.audio
-    audios = result.audios
-  }
+  let [{ audio, audios }, { video, videos }] = await Promise.all(
+    ['audio', 'video'].map(type => Producer(type, spec))
+  )
 
   log(3, 'Scaling video to full HD')
   if (spec.video.scale) video = await scale(video)
 
   log(4, 'Watermarking video')
   if (spec.video.watermark) video = await watermark([video, WATERMARK])
+
+  log(4, 'Adding subscribe overlay')
+  if (spec.video.overlay) video = await overlay([video, SUBSCRIBE])
 
   let captions = { lines: [] }
 
@@ -143,8 +134,9 @@ const produce = async spec => {
   const writeFile = (file, contents) =>
     writeFileSync(`${dir}/${file}`, contents, 'utf8')
 
-  const hours = toTime(duration).split(':')[0].trim()
+  const hours = parseInt(toTime(duration).split(':')[0].trim(), 10)
   const title = `The BEST ${spec.audio.theme} Tracks and ${spec.video.theme} (${hours} HOURs!)`
+
   const name = `${spec.audio.theme}_${spec.video.theme}_${new Date()
     .toISOString()
     .replace(/\W/g, '')
@@ -201,47 +193,4 @@ const produce = async spec => {
   return product
 }
 
-const produceRainVideo = async () => {
-  const spec = {
-    duration: 1,
-    audio: {
-      files: [
-        './server/public/assets/audios/Alexander - Rain sound (orangefreesounds.com).mp3',
-      ],
-    },
-    video: { theme: 'rain storm rainfall raining thunder lightning' },
-  }
-
-  const log = progress.bind(this, 'rainVideo', 3)
-  const { getVideos } = require('../downloader')
-
-  log(1, 'Producing rain video')
-  let { items: videos } = await getVideos(spec)
-  let video = videos.map(({ file }) => file)
-
-  log(2, 'Concatting videos together', video)
-  video = await concatmp4(video)
-
-  log(3, 'scale video to full HD')
-  video = await scale(video)
-
-  log(4, 'Watermarking video')
-  video = await watermark([video, WATERMARK])
-
-  log(5, 'Adding intro and outro')
-  video = await concatmp4([INTRO, video, OUTRO])
-
-  log(6, 'Looping audio to video duration')
-  let [audio] = spec.audio.files
-  const duration = 60 * 60 // await getVideoDurationInSeconds(video)
-  audio = await loop(audio, duration)
-
-  log(7, 'Mixing in rain audio')
-  video = await concatAV([video, audio])
-
-  let product = { spec, video }
-  log(8, 'Rain video produced', { spec, video })
-  return product
-}
-
-module.exports = { produce, produceRainVideo }
+module.exports = { produce }

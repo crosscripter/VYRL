@@ -1,5 +1,5 @@
 {
-  "duration": 3600,
+  "duration": 30,
   "captions": true,
   "audio": {
     "fade": true,
@@ -8,8 +8,9 @@
   "video": {
     "fade": true,
     "scale": true,
+    "overlay": true,
     "watermark": true,
-    "theme": "stars space galaxy universe",
+    "theme": "space",
     "hashtags": ["#space #stars #universe #ambient"]
   }
 }
