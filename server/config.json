@@ -1,7 +1,8 @@
 {
   "MAX_PER_PAGE": 70,
-  "INTRO": "assets/intro2.mp4",
+  "INTRO": "assets/intro.mp4",
   "WATERMARK": "assets/watermark.gif",
+  "SUBSCRIBE": "assets/subscribe.mp4",
   "OUTRO": "assets/outro.mp4",
   "ASSET_BASE": "./server/public",
   "EXTS": { "video": "mp4", "audio": "mp3" },
