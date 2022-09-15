@@ -17,7 +17,8 @@ parentPort.on('message', async msg => {
       let out = v.file
       const header = `parallel(${i + 1}/${videos.length}@${PARALLEL_LIMIT})`
       log(2.1, `${header}: Processing video ${out}`)
-      if (spec.video.fade && (i === 0 || i === videos.length - 1))
+      if (spec.video.fade)
+        // && (i === 0 || i === videos.length - 1))
         out = await fade(v)
       log(2.1, `${header}: Processed video ${v.file} --> ${out}`)
       return out
