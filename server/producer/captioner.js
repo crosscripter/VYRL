@@ -18,10 +18,10 @@ const generateCaptions = async (videos, audios) => {
     const { name = type, artist = 'Anonymous' } = item
 
     return (
-      `{\\an1} <font size="8px">${icon} "<b>${titleCase(name).replace(
+      `{\\an1} <font size="9px">${icon} "<b>${titleCase(name).replace(
         '&amp;',
         '&'
-      )}</b>"</font><br/>` + `<font size="6px">${artist} (${source})</font>`
+      )}</b>"</font><br/>` + `<font size="8px">${artist} (${source})</font>`
     )
   }
 
