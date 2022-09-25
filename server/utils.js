@@ -23,14 +23,16 @@ const resolveFiles = files =>
     return `${ASSET_BASE}/${f}`
   })
 
-const clean = () => {
+const clean = (pattern = 'temp', except) => {
+  console.log({ pattern, except })
+  const regexp = new RegExp(pattern, 'i')
   const tempFiles = readdirSync(ASSET_BASE)
+    .filter(f => !except?.includes(f))
+    .filter(f => regexp.test(f))
     .map(f => join(ASSET_BASE, f))
-    .filter(f => /temp/.test(f))
 
   log(
-    chalk`{bold {red clean}}: DELETING ${tempFiles.length} temp file(s)...`,
-    tempFiles
+    chalk`{bold {red clean}}: DELETING ${tempFiles.length} ${pattern} file(s)...`
   )
 
   tempFiles.forEach(f => {

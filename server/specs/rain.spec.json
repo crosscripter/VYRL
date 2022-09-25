@@ -2,15 +2,16 @@
   "duration": 30,
   "captions": false,
   "audio": {
-    "fade": true,
-    "files": ["audios/Alexander - Rain sound (orangefreesounds.com).mp3"]
+    "fade": false,
+    "theme": "piano"
   },
   "video": {
-    "fade": true,
-    "scale": true,
-    "overlay": true,
-    "watermark": true,
-    "theme": "rain rainfall storm thunder lightning",
-    "hashtags": ["#rain #relax"]
+    "count": 1,
+    "fade": false,
+    "scale": false,
+    "overlay": false,
+    "watermark": false,
+    "theme": "nature",
+    "hashtags": ["#piano #nature"]
   }
 }

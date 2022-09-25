@@ -19,10 +19,10 @@ const options = {
   SUBTITLE: file => `-vf subtitles=${file}`,
   CONCATMP4: '-c copy -bsf:a aac_adtstoasc',
   LOOP_OUTPUT: secs => `-c copy -t ${secs}`,
-  THUMBNAIL: '-ss 5 -frames:v 1 -q:v 2 -r 1/1',
+  THUMBNAIL: '-ss 8 -frames:v 1 -q:v 2 -r 1/1',
   FADE: (type, filter) => `-${type}f ${filter}`,
   CONCAT_AUDIO_VIDEO: '-c copy -map 0:v -map 1:a',
-  WATERMARK: '-c:a copy -crf 18 -preset ultrafast',
+  WATERMARK: '-c:a copy -crf 18 -preset ultrafast -shortest',
   REFRAME: scale => `-filter:v setpts=${scale}*PTS`,
   OVERLAY: '-map [out] -map 0:a? -c:a copy -crf 18 -preset ultrafast',
   SCALE: `-vf scale=w=1920:h=1080:force_original_aspect_ratio=1:out_color_matrix=bt709:flags=lanczos,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:#001326`,
@@ -39,7 +39,7 @@ const filters = {
   WATERMARK: scale =>
     `${filters.WATERMARK_IMAGE(
       scale
-    )}:enable='gte(t,3)':format=auto,format=yuv420p;[1]format=rgba,colorchannelmixer=aa=0.25[1]`,
+    )}:format=auto,format=yuv420p;[1]format=rgba,colorchannelmixer=aa=0.25[1]`,
   DRAWTEXT: (text, x, y, font = 'verdana', size = 50, color = 'white') =>
     `drawtext=fontfile='${font}':text=${text}:fontcolor=${color}:shadowcolor=#000000@0.75:shadowx=30:shadowy=20:fontsize=H/3.3:x=${x}:y=H-th-${y}-30`,
   SHADOW_TOP: () =>
@@ -96,6 +96,12 @@ const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions, output) => {
 const scale = async video => await _ffmpeg(video, 'mp4', options.SCALE)
 
 const concatMedia = (ext, options) => async files => {
+  if (files.length === 1) {
+    console.log('single file skipping transcoding...')
+    const [out] = await resolveFiles(files)
+    return out
+  }
+
   const names = await Promise.all(resolveFiles(files).map(transcode))
   const namesString = names.join('|')
   const out = await _ffmpeg(`concat:${namesString}`, ext, options)

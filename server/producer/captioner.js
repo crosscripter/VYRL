@@ -27,7 +27,7 @@ const generateCaptions = async (videos, audios) => {
 
   const captionAs = type => item => {
     const start = pos * 1000
-    pos += parseInt(item.duration, 10) ?? 0
+    pos += 5 // parseInt(item.duration, 10) ?? 0
     return { start, end: pos * 1000, text: captionText(type, item) }
   }
 

@@ -16,7 +16,7 @@ app.listen(SERVER_PORT, async () => {
   log(`Server launched at ${SERVER_URL} 🚀`)
 
   const { produce } = require('./producer')
-  const spec = require('./specs/space.spec')
+  const spec = require('./specs/rain.spec')
   await produce(spec)
 
   log('done')
