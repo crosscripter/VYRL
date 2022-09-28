@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Automated viral video generation",
   "scripts": {
-    "dev": "nodemon server"
+    "start": "nodemon src/server"
   },
   "keywords": [
     "VYRL",

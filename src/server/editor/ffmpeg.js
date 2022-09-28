@@ -11,21 +11,24 @@ const ffmpeg = require('fluent-ffmpeg')
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
 ffmpeg.setFfmpegPath(ffmpegPath)
 
+const OPTIMIZED = true
+
 const options = {
   CAPTION: '-codec:a copy',
   CONCATMP3: '-acodec copy',
   LOOP_INPUT: `-stream_loop -1`,
   TRANSCODE: '-c copy -f mpegts',
-  SUBTITLE: file => `-vf subtitles=${file}`,
+  SUBTITLE: file => `-vf subtitles=${file} -c:v libx264`,
   CONCATMP4: '-c copy -bsf:a aac_adtstoasc',
   LOOP_OUTPUT: secs => `-c copy -t ${secs}`,
   THUMBNAIL: '-ss 8 -frames:v 1 -q:v 2 -r 1/1',
   FADE: (type, filter) => `-${type}f ${filter}`,
-  CONCAT_AUDIO_VIDEO: '-c copy -map 0:v -map 1:a',
-  WATERMARK: '-c:a copy -crf 18 -preset ultrafast -shortest',
+  CONCAT_AUDIO_VIDEO: '-c copy -map 0:v -map 1:a -shortest',
+  WATERMARK: '-c:a copy -shortest',
   REFRAME: scale => `-filter:v setpts=${scale}*PTS`,
-  OVERLAY: '-map [out] -map 0:a? -c:a copy -crf 18 -preset ultrafast',
-  SCALE: `-vf scale=w=1920:h=1080:force_original_aspect_ratio=1:out_color_matrix=bt709:flags=lanczos,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:#001326`,
+  OVERLAY: '-map [out] -map 0:a? -c:a copy',
+  SCALE: (w, h) =>
+    `-vf scale=w=${w}:h=${h}:force_original_aspect_ratio=1:out_color_matrix=bt709:flags=lanczos,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:#001326`,
 }
 
 const filters = {
@@ -35,11 +38,11 @@ const filters = {
   VOICEOVER: () =>
     '[0:0]volume=0.3[a];[1:0]volume=2.0[b];[a][b]amix=inputs=2:duration=longest',
   WATERMARK_IMAGE: (scale = 0.125) =>
-    `[1][0]scale2ref=w=oh*mdar:h=ih*${scale}[logo][video];[video][logo]overlay=30:22`,
+    `[1][0]scale2ref=w=oh*mdar:h=ih*${scale}[logo][video];[video][logo]overlay=20:12`,
   WATERMARK: scale =>
     `${filters.WATERMARK_IMAGE(
       scale
-    )}:format=auto,format=yuv420p;[1]format=rgba,colorchannelmixer=aa=0.25[1]`,
+    )}:format=auto,format=yuv420p;[1]format=rgba,colorchannelmixer=aa=0.2[1]`,
   DRAWTEXT: (text, x, y, font = 'verdana', size = 50, color = 'white') =>
     `drawtext=fontfile='${font}':text=${text}:fontcolor=${color}:shadowcolor=#000000@0.75:shadowx=30:shadowy=20:fontsize=H/3.3:x=${x}:y=H-th-${y}-30`,
   SHADOW_TOP: () =>
@@ -82,6 +85,7 @@ const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions, output) => {
     if (inputOptions.length) $ffmpeg = $ffmpeg.inputOptions(...inputOptions)
 
     if (outputOptions.length) $ffmpeg = $ffmpeg.outputOptions(...outputOptions)
+    $ffmpeg = $ffmpeg.outputOptions(['-crf 18', '-preset ultrafast'])
     $ffmpeg = $ffmpeg.output(out)
 
     if (filter) $ffmpeg = $ffmpeg.complexFilter(filter)
@@ -93,8 +97,10 @@ const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions, output) => {
   })
 }
 
-const scale = async video => await _ffmpeg(video, 'mp4', options.SCALE)
-
+const scale = async (video, w, h) => {
+  console.log('scaling video', video, 'to w=', w, ', h=', h)
+  return await _ffmpeg(video, 'mp4', options.SCALE(w, h))
+}
 const concatMedia = (ext, options) => async files => {
   if (files.length === 1) {
     console.log('single file skipping transcoding...')
@@ -157,7 +163,8 @@ const fade = async ({ file, duration }) => {
 const shadow = async (filter, image) =>
   await _ffmpeg(image, 'png', '-frames:v 1 -q:v 2', filters[filter]())
 
-const thumbnail = async (video, name) => {
+const thumbnail = async (spec, video) => {
+  const name = `${spec.audio.theme} ${spec.video.theme}`
   const log = progress.bind(this, 'thumb', 6)
 
   log(1, 'Extracting frame for thumbnail image')
@@ -175,11 +182,8 @@ const thumbnail = async (video, name) => {
 
   log(3, 'Resolving font path')
   const title = name.split(' ').join('\n')
-  const font = join(
-    resolve('./'),
-    'server/public/assets',
-    'Roboto-Black.ttf'
-  ).replace(/([\:\\])/g, '\\$1')
+  const assetsDir = `${ASSET_BASE}/assets`
+  const font = join(assetsDir, 'Roboto-Black.ttf').replace(/([\:\\])/g, '\\$1')
 
   log(4, 'Adding title to thumbnail', title.toUpperCase())
   const titled = await _ffmpeg(
@@ -189,10 +193,14 @@ const thumbnail = async (video, name) => {
     filters.DRAWTEXT(title.toUpperCase(), 10, 10, font, 340, 'white')
   )
 
-  const res = '1080P' // '1080p'
-  const badge = `${ASSET_BASE}/assets/${res}.png`
-  log(5, 'Adding quality badge to thumbnail', badge)
-  const badged = await _ffmpeg([titled, badge], 'png', null, filters.BADGE())
+  let badged = shadowed
+  const res = spec.video.resolution
+
+  if (res) {
+    const badge = `${ASSET_BASE}/assets/${res}.png`
+    log(5, 'Adding quality badge to thumbnail', badge)
+    badged = await _ffmpeg([titled, badge], 'png', null, filters.BADGE())
+  }
 
   const WATERMARK_PNG = WATERMARK.replace('gif', 'png')
   log(6, 'Watermarking thumbnail', WATERMARK_PNG)

@@ -7,10 +7,16 @@
   "SUBSCRIBE": "assets/subscribe.mp4",
   "OUTRO": "assets/outro.mp4",
   "OUTRO_DURATION": 7,
-  "ASSET_BASE": "./server/public",
+  "ASSET_BASE": "./src/server/public",
   "EXTS": { "video": "mp4", "audio": "mp3" },
   "PIXABAY_URL": "https://pixabay.com/music/search/",
   "PEXELS_API_KEY": "563492ad6f91700001000001e841f3975d3f4ca18c5b020bd7109fe6",
+  "DEFAULT_RESOLUTION": "FULL HD",
+  "RESOLUTIONS": {
+    "HD": [1920, 1080],
+    "4K": [3840, 2160],
+    "MHD": [1080, 1920]
+  },
   "brand": {
     "creator": "VYRL Videos (Michael Schutt)",
     "source": "VYRL :: AI Video Generation Engine",

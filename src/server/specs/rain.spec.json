@@ -3,15 +3,15 @@
   "captions": false,
   "audio": {
     "fade": false,
-    "theme": "piano"
+    "theme": "upbeat"
   },
   "video": {
-    "count": 1,
     "fade": false,
     "scale": false,
     "overlay": false,
-    "watermark": false,
-    "theme": "nature",
-    "hashtags": ["#piano #nature"]
+    "watermark": true,
+    "theme": "waves",
+    "resolution": "HD",
+    "hashtags": ["#waves #upbeat"]
   }
 }

@@ -1,10 +1,8 @@
 const chalk = require('chalk')
-const { log } = require('./logger')
+const { log } = require('../logger')
 const { join, parse } = require('path')
-const { ASSET_BASE } = require('./config')
+const { ASSET_BASE } = require('../config')
 const { readdirSync, unlinkSync } = require('fs')
-
-const fileExt = file => parse(file).ext.slice(1).trim()
 
 const titleCase = str =>
   str
@@ -12,6 +10,8 @@ const titleCase = str =>
     .split(' ')
     .map(w => w.replace(w[0], w[0]?.toUpperCase()))
     .join(' ')
+
+const fileExt = file => parse(file).ext.slice(1).trim()
 
 const tempName = ext =>
   `${ASSET_BASE}/${Math.random().toString(13).slice(2)}.temp.${ext}`
@@ -24,8 +24,8 @@ const resolveFiles = files =>
   })
 
 const clean = (pattern = 'temp', except) => {
-  console.log({ pattern, except })
   const regexp = new RegExp(pattern, 'i')
+
   const tempFiles = readdirSync(ASSET_BASE)
     .filter(f => !except?.includes(f))
     .filter(f => regexp.test(f))

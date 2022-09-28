@@ -1,11 +1,11 @@
 const _ = require('underscore')
 const subsrt = require('subsrt')
 const striptags = require('striptags')
-const { brand } = require('../config')
 const { writeFileSync } = require('fs')
 const { progress } = require('../logger')
 const log = progress.bind(this, 'captioner', 5)
-const { toTime, tempName, titleCase } = require('../utils')
+const { brand, ASSET_BASE } = require('../config')
+const { toTime, tempName, titleCase, clean } = require('../utils')
 
 const generateCaptions = async (videos, audios) => {
   log(1, 'Generating captions')
@@ -13,21 +13,21 @@ const generateCaptions = async (videos, audios) => {
 
   const captionText = (type, item) => {
     const isVideo = type === 'video'
-    const icon = isVideo ? '🎥' : '🎵'
+    const icon = isVideo ? '🎬' : '🎵'
     const source = isVideo ? 'Pexels' : 'Pixabay'
     const { name = type, artist = 'Anonymous' } = item
 
     return (
-      `{\\an1} <font size="9px">${icon} "<b>${titleCase(name).replace(
+      `{\\an1} <font size="8px">${icon} "<b>${titleCase(name).replace(
         '&amp;',
         '&'
-      )}</b>"</font><br/>` + `<font size="8px">${artist} (${source})</font>`
+      )}</b>"</font><br/>` + `<font size="7px">${artist} (${source})</font>`
     )
   }
 
   const captionAs = type => item => {
     const start = pos * 1000
-    pos += 5 // parseInt(item.duration, 10) ?? 0
+    pos += +item.duration
     return { start, end: pos * 1000, text: captionText(type, item) }
   }
 
@@ -42,6 +42,8 @@ const generateCaptions = async (videos, audios) => {
 
   log(4, 'Writing captions SRT subtitle file')
   const out = tempName('srt')
+  const last = captions.slice(-1)[0]
+  last.end = videos.slice(-1)[0].duration * 1000
   const content = subsrt.build(captions, { format: 'srt' })
   writeFileSync(out, content)
   log(5, 'Captions generated at', out)
