@@ -1,21 +1,18 @@
 const chalk = require('chalk')
-const _ = require('underscore')
-const { unlinkSync } = require('fs')
-const { join, resolve } = require('path')
+const { join } = require('path')
 const { log, progress } = require('../logger')
-const { ASSET_BASE, WATERMARK } = require('../config')
-const { resolveFiles, fileExt, tempName } = require('../utils')
+const { resolveFiles, fileExt, tempName, clean } = require('../utils')
+const { EXTS, ASSET_BASE, WATERMARK, TITLE_FONT } = require('../config')
 const { default: getVideoDurationInSeconds } = require('get-video-duration')
 
 const ffmpeg = require('fluent-ffmpeg')
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
 ffmpeg.setFfmpegPath(ffmpegPath)
 
-const OPTIMIZED = true
-
 const options = {
   CAPTION: '-codec:a copy',
   CONCATMP3: '-acodec copy',
+  SHADOW: '-frames:v 1 -q:v 2',
   LOOP_INPUT: `-stream_loop -1`,
   TRANSCODE: '-c copy -f mpegts',
   SUBTITLE: file => `-vf subtitles=${file} -c:v libx264`,
@@ -53,15 +50,12 @@ const filters = {
     `[1][0]scale2ref=w=oh*mdar:h=ih*0.5[1:v][0];[1:v]setpts=PTS+${start}/TB,colorkey=0x00ff00:0.4:0.2[ovrl],[0:0][ovrl]overlay=enable='between(t\,${start}\,${end})':x=W-w-30:y=H-h+20:eof_action=pass[out]`,
 }
 
-const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions, output) => {
-  return new Promise((resolve, reject) => {
+const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions, output) =>
+  new Promise((resolve, reject) => {
     inputOptions = inputOptions?.split(' ') ?? []
     outputOptions = outputOptions?.split(' ') ?? []
-
     const out = output ?? tempName(ext)
-
     inputs = Array.isArray(inputs) ? inputs : [inputs]
-
     if (!inputs.find(i => i.includes(':'))) inputs = resolveFiles(inputs)
 
     log(
@@ -76,15 +70,13 @@ const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions, output) => {
     )
 
     let $ffmpeg = ffmpeg()
-
-    if (!inputOptions.length) {
-      $ffmpeg = $ffmpeg.addOption('-threads 1')
-    }
+    if (!inputOptions.length) $ffmpeg = $ffmpeg.addOption('-threads 1')
 
     inputs.forEach(input => ($ffmpeg = $ffmpeg.addInput(input)))
-    if (inputOptions.length) $ffmpeg = $ffmpeg.inputOptions(...inputOptions)
 
+    if (inputOptions.length) $ffmpeg = $ffmpeg.inputOptions(...inputOptions)
     if (outputOptions.length) $ffmpeg = $ffmpeg.outputOptions(...outputOptions)
+
     $ffmpeg = $ffmpeg.outputOptions(['-crf 18', '-preset ultrafast'])
     $ffmpeg = $ffmpeg.output(out)
 
@@ -95,12 +87,9 @@ const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions, output) => {
       .on('error', e => reject(e))
       .run()
   })
-}
 
-const scale = async (video, w, h) => {
-  console.log('scaling video', video, 'to w=', w, ', h=', h)
-  return await _ffmpeg(video, 'mp4', options.SCALE(w, h))
-}
+const scale = (video, w, h) => _ffmpeg(video, EXTS.video, options.SCALE(w, h))
+
 const concatMedia = (ext, options) => async files => {
   if (files.length === 1) {
     console.log('single file skipping transcoding...')
@@ -109,39 +98,33 @@ const concatMedia = (ext, options) => async files => {
   }
 
   const names = await Promise.all(resolveFiles(files).map(transcode))
-  const namesString = names.join('|')
-  const out = await _ffmpeg(`concat:${namesString}`, ext, options)
-  names.forEach(unlinkSync)
+  const out = await _ffmpeg(`concat:${names.join('|')}`, ext, options)
+  clean('temp.ts')
   return out
 }
 
-const concatmp3 = concatMedia('mp3', options.CONCATMP3)
+const concatmp3 = concatMedia(EXTS.audio, options.CONCATMP3)
+const concatmp4 = concatMedia(EXTS.video, options.CONCATMP4)
 
-const concatmp4 = concatMedia('mp4', options.CONCATMP4)
+const wav2mp3 = wav => _ffmpeg(wav, EXTS.audio)
+const transcode = file => _ffmpeg(file, 'ts', options.TRANSCODE)
+const voiceOver = files => _ffmpeg(files, EXTS.audio, '-y', filters.VOICEOVER())
 
-const wav2mp3 = async wav => await _ffmpeg(wav, 'mp3')
-
-const transcode = async file => await _ffmpeg(file, 'ts', options.TRANSCODE)
-
-const voiceOver = async files =>
-  await _ffmpeg(files, 'mp3', '-y', filters.VOICEOVER())
-
-const watermark = async (files, ext = 'mp4', scale) =>
-  await _ffmpeg(
+const watermark = (files, ext = EXTS.video, scale) =>
+  _ffmpeg(
     files,
     ext,
-    ext === 'mp4' ? options.WATERMARK : null,
-    (ext === 'mp4' ? filters.WATERMARK : filters.WATERMARK_IMAGE)(scale)
+    ext === EXTS.video ? options.WATERMARK : null,
+    (ext === EXTS.video ? filters.WATERMARK : filters.WATERMARK_IMAGE)(scale)
   )
 
-const reframe = async (video, scale = 2.0) =>
-  await _ffmpeg(video, 'mp4', options.REFRAME(scale))
+const reframe = (video, scale = 2.0) =>
+  _ffmpeg(video, EXTS.video, options.REFRAME(scale))
+const subtitle = ([video, subtitle]) =>
+  _ffmpeg(video, EXTS.video, options.SUBTITLE(subtitle))
 
-const subtitle = async ([video, subtitle]) =>
-  await _ffmpeg(video, 'mp4', options.SUBTITLE(subtitle))
-
-const loop = async (file, secs) =>
-  await _ffmpeg(
+const loop = (file, secs) =>
+  _ffmpeg(
     file,
     fileExt(file),
     options.LOOP_OUTPUT(secs),
@@ -149,19 +132,18 @@ const loop = async (file, secs) =>
     options.LOOP_INPUT
   )
 
-const concatAV = async files =>
-  await _ffmpeg(files, 'mp4', options.CONCAT_AUDIO_VIDEO)
+const concatAV = files => _ffmpeg(files, EXTS.video, options.CONCAT_AUDIO_VIDEO)
 
-const fade = async ({ file, duration }) => {
+const fade = ({ file, duration }) => {
   const ext = fileExt(file)
-  const type = ext === 'mp4' ? 'v' : 'a'
+  const type = ext === EXTS.video ? 'v' : 'a'
   let filter = filters.FADE(duration)
   filter = type === 'a' ? filter.replace(/fade/g, 'afade') : filter
-  return await _ffmpeg(file, ext, options.FADE(type, filter))
+  return _ffmpeg(file, ext, options.FADE(type, filter))
 }
 
-const shadow = async (filter, image) =>
-  await _ffmpeg(image, 'png', '-frames:v 1 -q:v 2', filters[filter]())
+const shadow = (filter, image) =>
+  _ffmpeg(image, EXTS.image, options.SHADOW, filters[filter]())
 
 const thumbnail = async (spec, video) => {
   const name = `${spec.audio.theme} ${spec.video.theme}`
@@ -170,7 +152,7 @@ const thumbnail = async (spec, video) => {
   log(1, 'Extracting frame for thumbnail image')
   const image = await _ffmpeg(
     video,
-    'png',
+    EXTS.image,
     options.THUMBNAIL,
     null,
     filters.THUMBNAIL()
@@ -183,12 +165,12 @@ const thumbnail = async (spec, video) => {
   log(3, 'Resolving font path')
   const title = name.split(' ').join('\n')
   const assetsDir = `${ASSET_BASE}/assets`
-  const font = join(assetsDir, 'Roboto-Black.ttf').replace(/([\:\\])/g, '\\$1')
+  const font = join(assetsDir, TITLE_FONT).replace(/([\:\\])/g, '\\$1')
 
   log(4, 'Adding title to thumbnail', title.toUpperCase())
   const titled = await _ffmpeg(
     shadowed,
-    'png',
+    EXTS.image,
     null,
     filters.DRAWTEXT(title.toUpperCase(), 10, 10, font, 340, 'white')
   )
@@ -197,15 +179,15 @@ const thumbnail = async (spec, video) => {
   const res = spec.video.resolution
 
   if (res) {
-    const badge = `${ASSET_BASE}/assets/${res}.png`
+    const badge = `${ASSET_BASE}/assets/${res}.${EXTS.image}`
     log(5, 'Adding quality badge to thumbnail', badge)
-    badged = await _ffmpeg([titled, badge], 'png', null, filters.BADGE())
+    badged = await _ffmpeg([titled, badge], EXTS.image, null, filters.BADGE())
   }
 
-  const WATERMARK_PNG = WATERMARK.replace('gif', 'png')
+  const WATERMARK_PNG = WATERMARK.replace('gif', EXTS.image)
   log(6, 'Watermarking thumbnail', WATERMARK_PNG)
   log(`thumb: Watermarking VYRL logo...`, WATERMARK_PNG)
-  return await watermark([badged, WATERMARK_PNG], 'png', 0.3)
+  return watermark([badged, WATERMARK_PNG], EXTS.image, 0.3)
 }
 
 const overlay = async files => {
@@ -215,9 +197,9 @@ const overlay = async files => {
   const start = (duration / 3).toFixed(0)
   const end = (duration + length).toFixed(0)
 
-  return await _ffmpeg(
+  return _ffmpeg(
     [input, green],
-    'mp4',
+    EXTS.video,
     options.OVERLAY,
     filters.OVERLAY(start, end)
   )
