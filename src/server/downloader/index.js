@@ -68,7 +68,7 @@ const getAssets = (type, service) => async spec => {
 
     assets.length += parseInt(duration, 10)
     assets.items.push({ name, artist, duration, file, url })
-    if (spec.video.count && spec.video.count === assets.items.length) break
+    if (spec[type]?.count === assets.items.length) break
   }
 
   log(

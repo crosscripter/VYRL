@@ -1,14 +1,14 @@
 {
   "duration": 30,
-  "captions": false,
+  "captions": true,
   "audio": {
-    "fade": false,
+    "fade": true,
     "theme": "upbeat"
   },
   "video": {
-    "fade": false,
-    "scale": false,
-    "overlay": false,
+    "fade": true,
+    "scale": true,
+    "overlay": true,
     "watermark": true,
     "theme": "waves",
     "resolution": "HD",

@@ -1,9 +1,17 @@
 const chalk = require('chalk')
-const { join } = require('path')
+const { resolve, join } = require('path')
+const { parallelLimit } = require('async')
 const { log, progress } = require('../logger')
 const { resolveFiles, fileExt, tempName, clean } = require('../utils')
-const { EXTS, ASSET_BASE, WATERMARK, TITLE_FONT } = require('../config')
 const { default: getVideoDurationInSeconds } = require('get-video-duration')
+
+const {
+  EXTS,
+  ASSET_BASE,
+  WATERMARK,
+  TITLE_FONT,
+  PARALLEL_LIMIT,
+} = require('../config')
 
 const ffmpeg = require('fluent-ffmpeg')
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
@@ -48,6 +56,8 @@ const filters = {
     '[0]split[v0][v1];[v0]crop=iw:ih/3,format=rgba,geq=r=0:g=0:b=0:a=-255*(Y/H)[fg];[v1][fg]overlay=0:-10:format=auto',
   OVERLAY: (start, end) =>
     `[1][0]scale2ref=w=oh*mdar:h=ih*0.5[1:v][0];[1:v]setpts=PTS+${start}/TB,colorkey=0x00ff00:0.4:0.2[ovrl],[0:0][ovrl]overlay=enable='between(t\,${start}\,${end})':x=W-w-30:y=H-h+20:eof_action=pass[out]`,
+  FADE_TEXT: (text, font) =>
+    `[0:v]drawtext=fontfile='${font}':text='${text}':fontsize=((W/70)*5)/1.5:fontcolor=ffffff:alpha='if(lt(t,3),0,if(lt(t,8),(t-3)/5,if(lt(t,16),1,if(lt(t,20),(4-(t-16))/4,0))))':x=(w-text_w)/2:y=(h-text_h)/2`,
 }
 
 const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions, output) =>
@@ -70,7 +80,8 @@ const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions, output) =>
     )
 
     let $ffmpeg = ffmpeg()
-    if (!inputOptions.length) $ffmpeg = $ffmpeg.addOption('-threads 1')
+    if (!inputOptions.length)
+      $ffmpeg = $ffmpeg.addOption('-threads ' + require('os').cpus().length / 2)
 
     inputs.forEach(input => ($ffmpeg = $ffmpeg.addInput(input)))
 
@@ -97,6 +108,7 @@ const concatMedia = (ext, options) => async files => {
     return out
   }
 
+  log('Starting parallel transcoding')
   const names = await Promise.all(resolveFiles(files).map(transcode))
   const out = await _ffmpeg(`concat:${names.join('|')}`, ext, options)
   clean('temp.ts')
@@ -107,7 +119,9 @@ const concatmp3 = concatMedia(EXTS.audio, options.CONCATMP3)
 const concatmp4 = concatMedia(EXTS.video, options.CONCATMP4)
 
 const wav2mp3 = wav => _ffmpeg(wav, EXTS.audio)
+
 const transcode = file => _ffmpeg(file, 'ts', options.TRANSCODE)
+
 const voiceOver = files => _ffmpeg(files, EXTS.audio, '-y', filters.VOICEOVER())
 
 const watermark = (files, ext = EXTS.video, scale) =>
@@ -205,6 +219,14 @@ const overlay = async files => {
   )
 }
 
+const fadeText = (video, text) => {
+  const font = join(`${ASSET_BASE}/assets`, TITLE_FONT).replace(
+    /([\:\\])/g,
+    '\\$1'
+  )
+  return _ffmpeg(video, EXTS.video, null, filters.FADE_TEXT(text, font))
+}
+
 module.exports = {
   concatmp3,
   concatmp4,
@@ -219,4 +241,5 @@ module.exports = {
   scale,
   thumbnail,
   overlay,
+  fadeText,
 }
