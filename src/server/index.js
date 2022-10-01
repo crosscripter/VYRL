@@ -27,6 +27,7 @@ app.listen(SERVER_PORT, async () => {
     concatAV,
     concatmp3,
     concatmp4,
+    scale,
   } = require('./editor/ffmpeg')
 
   const phrase = `
@@ -97,6 +98,10 @@ For His name's sake.
 
   log(`Concatenating all videos...`)
   video = await concatmp4(resultVideos)
+
+  log('Scaling video to FULL HD')
+  const { RESOLUTIONS } = require('./config')
+  video = await scale(video, ...RESOLUTIONS.HD)
 
   log(`Mixing audio and video...`)
   video = await concatAV([video, audio])
