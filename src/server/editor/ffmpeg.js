@@ -57,7 +57,10 @@ const filters = {
   OVERLAY: (start, end) =>
     `[1][0]scale2ref=w=oh*mdar:h=ih*0.5[1:v][0];[1:v]setpts=PTS+${start}/TB,colorkey=0x00ff00:0.4:0.2[ovrl],[0:0][ovrl]overlay=enable='between(t\,${start}\,${end})':x=W-w-30:y=H-h+20:eof_action=pass[out]`,
   FADE_TEXT: (text, font) =>
-    `[0:v]drawtext=fontfile='${font}':text='${text}':fontsize=((W/70)*5)/1.5:fontcolor=ffffff:alpha='if(lt(t,3),0,if(lt(t,8),(t-3)/5,if(lt(t,16),1,if(lt(t,20),(4-(t-16))/4,0))))':x=(w-text_w)/2:y=(h-text_h)/2`,
+    `[0:v]drawtext=fontfile='${font}':text='${text.replace(
+      /'/g,
+      '’'
+    )}':fontsize=((W/70)*5)/1.5:fontcolor=ffffff:alpha='if(lt(t,3),0,if(lt(t,8),(t-3)/5,if(lt(t,16),1,if(lt(t,20),(4-(t-16))/4,0))))':x=(w-text_w)/2:y=(h-text_h)/2`,
 }
 
 const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions, output) =>

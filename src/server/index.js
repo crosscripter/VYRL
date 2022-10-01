@@ -30,14 +30,13 @@ app.listen(SERVER_PORT, async () => {
   } = require('./editor/ffmpeg')
 
   const phrase = `
-  The Lord is my shepherd;
-I shall not want.
-He makes me to lie down in green pastures;
-He leads me beside the still waters.
-He restores my soul;
-He leads me in the paths of righteousness
-For His name’s sake.
-`.trim()
+The Lord is my shepherd; I shall not want.\r\n
+He makes me to lie down in green pastures;\r\n
+He leads me beside the still waters.\r\n
+He restores my soul;\r\n
+He leads me in the paths of righteousness\r\n
+For His name's sake.
+`
 
   const analysis = analyze(phrase)
 
@@ -82,7 +81,7 @@ For His name’s sake.
       log(`Creating video for "${sentence}" from "${video.name}"...`)
 
       const text = sentence
-        .replace(/([^\s\w])/g, `$1\n`)
+        .replace(/([^'\(\)\s\w])/g, `$1\n`)
         .split('\n')
         .map(x => x.trim())
         .join('\n')
