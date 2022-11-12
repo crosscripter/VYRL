@@ -1,18 +1,18 @@
 const chalk = require('chalk')
 const { inspect } = require('util')
 const { existsSync } = require('fs')
+const { clean } = require('../utils')
 const { progress } = require('../logger')
 const { ASSET_BASE } = require('../config')
-const { toTime, clean } = require('../utils')
 const { thumbnail } = require('../editor/ffmpeg')
-const { generateDescription } = require('../captioner')
 const { mkdir, copyFile, writeFile } = require('fs').promises
+const { generateTitle, generateDescription } = require('../captioner')
 const { default: getVideoDurationInSeconds } = require('get-video-duration')
 
 const package = async (spec, video, videos, captions, audios, audio) => {
   const log = progress.bind(this, 'packager', 11)
   log(1, 'Generating description')
-  const description = await generateDescription(spec, captions)
+  const description = await generateDescription(spec)
 
   log(2, 'Generating thumbnail')
   let thumb = await thumbnail(spec, video)
@@ -23,11 +23,7 @@ const package = async (spec, video, videos, captions, audios, audio) => {
   const writeToFile = (file, contents) =>
     writeFile(`${dir}/${file}`, contents, 'utf8')
 
-  const hour = parseInt(toTime(spec.duration).split(':')[1].trim(), 10)
-  const hours = `${hour} HOUR${hour <= 1 ? '' : 'S'}!`
-  const title = `${spec.audio.theme} ${spec.video.theme.toUpperCase()} ${spec.video.resolution
-    } - Relax, Study, Work or Meditation Music (${hours}!)`
-
+  const title = generateTitle(spec)
   const id = `${new Date().toISOString().replace(/\W/g, '').slice(0, -1)}`
 
   const dir = `${ASSET_BASE}/uploads/YouTube/${id}`

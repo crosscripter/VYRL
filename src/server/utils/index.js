@@ -1,8 +1,8 @@
-const chalk = require('chalk')
-const { log } = require('../logger')
 const { join, parse } = require('path')
 const { ASSET_BASE } = require('../config')
 const { readdirSync, unlinkSync } = require('fs')
+
+const plural = (noun, n) => `${noun.toUpperCase()}${n <= 1 ? '' : 'S'}`
 
 const titleCase = str =>
   str
@@ -31,10 +31,6 @@ const clean = (pattern = 'temp', except) => {
     .filter(f => regexp.test(f))
     .map(f => join(ASSET_BASE, f))
 
-  log(
-    chalk`{bold {red clean}}: DELETING ${tempFiles.length} ${pattern} file(s)...`
-  )
-
   tempFiles.forEach(f => {
     try {
       unlinkSync(f)
@@ -42,10 +38,4 @@ const clean = (pattern = 'temp', except) => {
   })
 }
 
-const toTime = seconds => {
-  const date = new Date(null)
-  date.setSeconds(seconds / 1000)
-  return date.toISOString().substr(11, 8)
-}
-
-module.exports = { resolveFiles, tempName, fileExt, clean, titleCase, toTime }
+module.exports = { resolveFiles, tempName, fileExt, clean, titleCase, plural }

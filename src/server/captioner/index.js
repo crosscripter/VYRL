@@ -1,15 +1,27 @@
 const _ = require('underscore')
-const subsrt = require('subsrt')
+const { build } = require('subsrt')
 const { brand } = require('../config')
-const striptags = require('striptags')
 const { writeFileSync } = require('fs')
 const { progress } = require('../logger')
 const log = progress.bind(this, 'captioner', 5)
-const { toTime, tempName, titleCase } = require('../utils')
+const { plural, tempName, titleCase } = require('../utils')
+
+const generateTitle = spec => {
+  const mins = Math.floor(spec.duration / 60)
+  const hours = Math.floor(spec.duration / 3600)
+  const duration =
+    hours >= 1
+      ? `${hours} ${plural('hour', hours)}`
+      : `${mins} ${plural('minute', mins)}`
+  const name = `${spec.audio.theme} ${spec.video.theme.toUpperCase()}`
+  const keywords = `Relax, Study, Work or Meditation Music`
+  const title = `${name} ${spec.video.resolution} - ${keywords} (${duration}!)`
+  return title
+}
 
 const generateCaptions = async (videos, audios) => {
-  log(1, 'Generating captions')
   let pos = 0
+  log(1, 'Generating captions')
 
   const captionText = (type, item) => {
     const isVideo = type === 'video'
@@ -44,64 +56,53 @@ const generateCaptions = async (videos, audios) => {
   const out = tempName('srt')
   const last = captions.slice(-1)[0]
   last.end = videos.slice(-1)[0].duration * 1000
-  const content = subsrt.build(captions, { format: 'srt' })
+  const content = build(captions, { format: 'srt' })
   writeFileSync(out, content)
   log(5, 'Captions generated at', out)
   return { file: out, lines: captions }
 }
 
-const generateDescription = async (spec, captions) => {
-  const { audio, video } = spec
-  const { lines: tracks } = captions
+const generateDescription = async spec => {
+  const { video } = spec
 
   return `
-VYRL Videos -- The BEST of the web!
+VYRL Videos Presents "${generateTitle(spec)}"
 
-${audio.theme} ${video.theme} video for feeling that ${
-    audio.theme
-  } vibe and enjoying ${video.theme} scenes!
-VYRL provides videos to Fall asleep to, beautiful nature videos to relax to, 
-including soothing, meditation and relaxation music for sleeping, focus, studying and more! 
+VYRL provides #videos to Fall asleep to, #beautiful #nature videos to #relax to, 
+including #soothing, #meditation and #relaxation #music for #sleeping, #focus, #studying and more! 
 
-----------------------
-Be sure to like and subscribe for more content ${brand.subscribe}
-Stream or download music from VYRL at ${brand.streamUrl}
+------------------------------------------------------------------------------------------------------------
+Be sure to LIKE and SUBSCRIBE for more content  
+${brand.subscribe}
 
-----------------------
-💿 Tracks 
-${tracks
-  .map(
-    ({ start, end, text }) =>
-      `${toTime(start)} - ${toTime(end)} ${striptags(
-        text.replace(/\{\\an1\}/g, '')
-      )}`
-  )
-  .join('\n')}
+Stream or download music from VYRL at 
+${brand.streamUrl}
 
-----------------------
-Follow Us all over the web! 
-VYRL :: ${brand.linkUrl}
+------------------------------------------------------------------------------------------------------------
+Follow us all over the web! 
+
 ${Object.entries(brand.socials)
   .map(([name, url]) => `${name}: ${url}`)
   .join('\n')}
 
-----------------------
-Music courtesy of ${brand.audio.source} 
-Footage/photos courtesy of ${brand.video.source}
+-----------------------------------------------------------------------------------------------------------
+Music courtesy of
+${brand.audio.source} 
 
-----------------------
-Check out our website at: ${brand.website} 
-Binge watch even more VIRAL videos at: ${brand.playlist}
-Get a free music download and stay updated with our newsletter: 
-${brand.newsletter}
+Footage/photos courtesy of
+${brand.video.source}
 
-----------------------
-© Copyright ${brand.creator} ${new Date().getFullYear()}
-Video/Audio created by ${brand.source}
+#Binge watch even more #VIRAL videos at:
+${brand.playlist}
 
+-----------------------------------------------------------------------------------------------------------
 #️ Relevant hashtags:
 ${video.hashtags.join(' ')}
+
+-----------------------------------------------------------------------------------------------------------
+© Copyright ${brand.creator} ${new Date().getFullYear()}
+Video/Audio created by ${brand.source}
 `
 }
 
-module.exports = { generateCaptions, generateDescription }
+module.exports = { generateCaptions, generateTitle, generateDescription }

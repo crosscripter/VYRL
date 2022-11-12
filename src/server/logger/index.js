@@ -1,15 +1,14 @@
 const chalk = require('chalk')
-const { hrtime } = require('process')
 const { inspect } = require('util')
 
 const log = (...msgs) => {
   const msg = msgs
     .map(x => (typeof x === 'object' ? inspect(x, null, null, true) : x))
-    .map(m => '' + m)
+    .map(m => m.toString())
     .join(' ')
 
   console.log(
-    chalk`{bold {cyan VYRL} {green ⮞}} {gray ${new Date().toISOString()}} {white ${msg}}`
+    chalk`{bold {cyan VYRL} {green ⮞}} {gray ${new Date().toISOString()}}  {white ${msg}}`
   )
 }
 

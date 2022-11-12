@@ -1,4 +1,5 @@
 {
+  "SERVER_HOST": "localhost",
   "SERVER_PORT": 3000,
   "MAX_PER_PAGE": 70,
   "INTRO": "assets/intro.mp4",
@@ -28,22 +29,15 @@
       "source": "Pixabay (https://pixabay.com/)"
     },
     "streamUrl": "https://youtube.com/",
-    "website": "https://vyrl.video",
-    "newsletter": "https://news.vyrl.video",
     "subscribe": "https://bit.ly/3THzfR7",
     "playlist": "https://bit.ly/3qfpprV",
-    "linkUrl": "https://linktr.ee/vyrlvideos",
     "socials": {
       "Facebook": "https://www.facebook.com/vyrlvids",
       "Instagram": "https://www.instagram.com/vyrl_videos",
       "Tumblr": "https://vyrlvideos.tumblr.com/",
       "Reddit": "https://www.reddit.com/user/VYRLVideos",
       "Tiktok": "https://www.tiktok.com/@vyrlvideos",
-      "Twitter": "https://twitter.com/vyrl_videos",
-      "Spotify": "https://spotify.com/vyrlvideos",
-      "Apple": "https://music.apple.com/vyrlvideos",
-      "YoutubeMusic": "https://bit.ly/3qfpprV",
-      "AmazonMusic": "https://music.amazon.com/vyrlvideos"
+      "Twitter": "https://twitter.com/vyrl_videos"
     }
   }
 }

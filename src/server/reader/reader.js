@@ -1,11 +1,10 @@
 const say = require('say')
-const { parse } = require('path')
 const { log } = require('../logger')
 const { tempName } = require('../utils')
 const { wav2mp3 } = require('../editor/ffmpeg')
 const { readFileSync, writeFileSync } = require('fs')
 
-const transcribe = audio => {
+const transcribe = () => {
   const out = tempName('srt')
   const text = readFileSync(`${base}/transcript.srt`, 'utf8')
   writeFileSync(out, text, 'utf8')

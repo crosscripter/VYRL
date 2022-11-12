@@ -1,8 +1,4 @@
-const { stringify } = JSON
-const chalk = require('chalk')
-const { join } = require('path')
 const { log } = require('../logger')
-const { clean } = require('../utils')
 const { package } = require('../packager')
 const { progress } = require('../logger')
 const { Worker } = require('worker_threads')
@@ -161,5 +157,4 @@ and the cave environment.
   video = await concatAV([video, audio])
 
   log(`Final video created for "${phrase}"\n`, video)
-
 }
