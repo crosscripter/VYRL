@@ -6,8 +6,8 @@ const { ASSET_BASE } = require('../config')
 const { toTime, clean } = require('../utils')
 const { thumbnail } = require('../editor/ffmpeg')
 const { generateDescription } = require('../captioner')
-const { default: getVideoDurationInSeconds } = require('get-video-duration')
 const { mkdir, copyFile, writeFile } = require('fs').promises
+const { default: getVideoDurationInSeconds } = require('get-video-duration')
 
 const package = async (spec, video, videos, captions, audios, audio) => {
   const log = progress.bind(this, 'packager', 11)
@@ -25,9 +25,8 @@ const package = async (spec, video, videos, captions, audios, audio) => {
 
   const hour = parseInt(toTime(spec.duration).split(':')[1].trim(), 10)
   const hours = `${hour} HOUR${hour <= 1 ? '' : 'S'}!`
-  const title = `${spec.audio.theme} ${spec.video.theme.toUpperCase()} ${
-    spec.video.resolution
-  } - Relax, Study, Work or Meditation Music (${hours}!)`
+  const title = `${spec.audio.theme} ${spec.video.theme.toUpperCase()} ${spec.video.resolution
+    } - Relax, Study, Work or Meditation Music (${hours}!)`
 
   const id = `${new Date().toISOString().replace(/\W/g, '').slice(0, -1)}`
 

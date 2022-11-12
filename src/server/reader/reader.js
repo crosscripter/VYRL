@@ -21,7 +21,7 @@ const _say = async text => {
       if (err) return rej(err)
       out = await wav2mp3(out)
       log(`tts: Text "${text}" exported to ${out}`)
-      return res(parse(out).base)
+      return res(out)
     })
   })
 }

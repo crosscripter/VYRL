@@ -1,11 +1,11 @@
 const _ = require('underscore')
 const subsrt = require('subsrt')
+const { brand } = require('../config')
 const striptags = require('striptags')
 const { writeFileSync } = require('fs')
 const { progress } = require('../logger')
 const log = progress.bind(this, 'captioner', 5)
-const { brand, ASSET_BASE } = require('../config')
-const { toTime, tempName, titleCase, clean } = require('../utils')
+const { toTime, tempName, titleCase } = require('../utils')
 
 const generateCaptions = async (videos, audios) => {
   log(1, 'Generating captions')

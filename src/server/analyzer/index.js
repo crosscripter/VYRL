@@ -22,7 +22,12 @@ const analyze = text => {
   log(1, 'Analyzing text', text)
 
   log(2, 'Tokenizing sentences')
-  const sentences = new SentenceTokenizer().tokenize(text)
+  let sentences = text
+    .split(/\r|\n|\r\n/g)
+    .map(x => x.trim())
+    .filter(Boolean)
+
+  // sentences = new SentenceTokenizer().tokenize(text)
   log('sentences=', sentences.length)
 
   const analysis = sentences.map(sentence => {
