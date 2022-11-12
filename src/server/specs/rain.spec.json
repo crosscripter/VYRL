@@ -1,17 +1,19 @@
 {
-  "duration": 30,
-  "captions": true,
+  "duration": 10,
+  "captions": false,
   "audio": {
-    "fade": true,
-    "theme": "upbeat"
+    "fade": false,
+    "files": [
+      "assets/audios/Alexander - Rain sound (orangefreesounds.com).mp3"
+    ]
   },
   "video": {
-    "fade": true,
-    "scale": true,
-    "overlay": true,
-    "watermark": true,
-    "theme": "waves",
+    "fade": false,
+    "scale": false,
+    "overlay": false,
+    "watermark": false,
+    "theme": "rain",
     "resolution": "HD",
-    "hashtags": ["#waves #upbeat"]
+    "hashtags": ["#rain"]
   }
 }
