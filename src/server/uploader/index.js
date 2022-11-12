@@ -1,50 +1,85 @@
 const { log } = require('../logger')
-const { parse } = require('path')
 const sendkeys = require('sendkeys')
-const YOUTUBE_URL = 'https://youtube.com/'
+const { readFileSync } = require('fs')
+const { join, resolve, parse } = require('path')
 
-const wait = ms => new Promise(res => setTimeout(() => res(true), ms))
+const wait = ms => new Promise(res => setTimeout(res, ms))
 
-const uploadUrl =
-  'https://studio.youtube.com/channel/UC7xJpL8WWGUOxvbbHshcmQw/videos/upload?d=ud&filter=%5B%5D&sort=%7B%22columnType%22%3A%22date%22%2C%22sortOrder%22%3A%22DESCENDING%22%7D'
+const upload = async videoPath => {
+  log(`Uploading video ${videoPath}`)
 
-const upload = async video => {
+  log('Opening start menu')
   await sendkeys('^{ESCAPE}')
+
+  log('Opening chrome')
   await sendkeys('chrome')
   await sendkeys('{ENTER}')
 
-  await wait(3000)
-  await sendkeys(uploadUrl)
+  log('Go to channel upload page')
+  await sendkeys('^L')
+  const UPLOAD_URL = `https://studio.youtube.com/channel/UC7xJpL8WWGUOxvbbHshcmQw/videos/upload?d=ud`
+  await sendkeys(UPLOAD_URL)
   await sendkeys('{ENTER}')
 
   await wait(5000)
+  log('Click the upload button')
   await sendkeys('{TAB}{TAB}{TAB}{ENTER}')
-  await sendkeys('C:{ENTER}')
-  await sendkeys('users{ENTER}')
-  await sendkeys('cross{ENTER}')
-  await sendkeys('code{ENTER}')
-  await sendkeys('VYRL{ENTER}')
-  await sendkeys('server{ENTER}')
-  await sendkeys('public{ENTER}')
-  await sendkeys(parse(video.videoPath).base + '{ENTER}')
 
-  await wait(5000)
-  await sendkeys(video.title)
-  await sendkeys('{TAB}{TAB}{TAB}{TAB}{TAB}')
-  await sendkeys(video.description)
-  await sendkeys('{TAB}{TAB}{TAB}{TAB}{ENTER}')
+  log('Type the file to upload')
+  await sendkeys(resolve(videoPath) + '{ENTER}')
+  await sendkeys('video.mp4{ENTER}')
+
+  await wait(10000)
+  log('Inject script into upload page')
+  await sendkeys('^+J')
+  await wait(1000)
+
+  const skescape = text => escape(text).replace(/%/gm, '+5')
+  const title = skescape(readFileSync(`${videoPath}/title.txt`).toString())
+  const description = skescape(
+    readFileSync(`${videoPath}/description.txt`).toString()
+  )
+  const tags = readFileSync(`${videoPath}/tags.txt`)
+    .toString()
+    .split(' ')
+    .map(skescape)
+
+  await sendkeys(
+    `const video = +[ title: '${title}', description: '${description}', tags: [${tags
+      .map(x => `'${x}'`)
+      .join(', ')}] +]+{ENTER}`
+  )
+
+  await sendkeys(
+    `let [+4title, +4description] = document.querySelectorAll+9'#textbox'+0+{ENTER}`
+  )
+
+  await sendkeys(`+4title.textContent = unescape+9video.title+0+{ENTER}`)
+  await sendkeys(
+    `+4description.textContent = unescape+9video.description+0+{ENTER}`
+  )
+
+  await sendkeys(
+    `let [a, +4tags] = document.querySelectorAll+9'#text-input'+0+{ENTER}`
+  )
+
+  await sendkeys(`+4tags.value = unescape+9video.tags.toString+9+0+0+{ENTER}`)
+  await sendkeys('{ENTER}')
+
   await wait(3000)
-  await sendkeys(parse(vidoe.thumbnailPath).base + '{ENTER}')
-  await sendkeys(
-    '{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}'
-  )
-  await sendkeys(video.hashtags.join(', '))
-  await sendkeys(
-    '{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}'
-  )
-  await sendkeys('{TAB}{TAB}{TAB}{TAB}{TAB}{TAB}')
-  await sendkeys(video.hashtags.join(', '))
-  // await sendkeys('{TAB}{TAB}{TAB}{ENTER}')
+  log('Clicking next button')
+  await sendkeys('^+J')
+  await sendkeys(`document.querySelector+9'#next-button'+0.click+9+0{ENTER}`)
+
+  await wait(3000)
+  log('Clicking next button again')
+  await sendkeys('^+J')
+  await sendkeys(`document.querySelector+9'#next-button'+0.click+9+0{ENTER}`)
+
+  await wait(3000)
+  log('Clicking next button again')
+  await sendkeys('^+J')
+  await sendkeys(`document.querySelector+9'#next-button'+0.click+9+0{ENTER}`)
 }
 
 module.exports = { upload }
