@@ -1,6 +1,5 @@
 const chalk = require('chalk')
-const { resolve, join } = require('path')
-const { parallelLimit } = require('async')
+const { join } = require('path')
 const { log, progress } = require('../logger')
 const { resolveFiles, fileExt, tempName, clean } = require('../utils')
 const { default: getVideoDurationInSeconds } = require('get-video-duration')
@@ -10,7 +9,6 @@ const {
   ASSET_BASE,
   WATERMARK,
   TITLE_FONT,
-  PARALLEL_LIMIT,
 } = require('../config')
 
 const ffmpeg = require('fluent-ffmpeg')

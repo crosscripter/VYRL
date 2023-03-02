@@ -54,7 +54,7 @@ parentPort.on('message', async msg => {
         out = await watermark([out, WATERMARK])
       }
 
-      if (spec.video.fade) {
+      if (spec.video.fade && spec.video?.count !== 1) {
         log(2.4, `${header}: Fading video ${out}`)
         out = await fade({ file: out, duration: v.duration })
       }
