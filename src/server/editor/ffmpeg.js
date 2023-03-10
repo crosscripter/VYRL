@@ -3,13 +3,7 @@ const { join } = require('path')
 const { log, progress } = require('../logger')
 const { resolveFiles, fileExt, tempName, clean } = require('../utils')
 const { default: getVideoDurationInSeconds } = require('get-video-duration')
-
-const {
-  EXTS,
-  ASSET_BASE,
-  WATERMARK,
-  TITLE_FONT,
-} = require('../config')
+const { EXTS, ASSET_BASE, WATERMARK, TITLE_FONT } = require('../config').assets
 
 const ffmpeg = require('fluent-ffmpeg')
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
@@ -225,6 +219,7 @@ const fadeText = (video, text) => {
     /([\:\\])/g,
     '\\$1'
   )
+
   return _ffmpeg(video, EXTS.video, null, filters.FADE_TEXT(text, font))
 }
 

@@ -6,10 +6,8 @@ const { getVideos } = require('../downloader')
 const { parentPort } = require('worker_threads')
 
 const {
-  WATERMARK,
-  SUBSCRIBE,
-  RESOLUTIONS,
-  DEFAULT_RESOLUTION,
+  assets: { WATERMARK, SUBSCRIBE },
+  video: { RESOLUTIONS, DEFAULT_RESOLUTION },
 } = require('../config')
 
 const {

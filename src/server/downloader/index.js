@@ -7,7 +7,7 @@ const { readFileSync } = require('fs')
 const { tempName } = require('../utils')
 const { createWriteStream } = require('fs')
 const getMp3duration = require('get-mp3-duration')
-const { EXTS, MAX_PER_PAGE } = require('../config')
+const { EXTS, MAX_PER_PAGE } = require('../config').assets
 
 const download = async (type, url) => {
   const out = tempName(EXTS[type])

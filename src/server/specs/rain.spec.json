@@ -1,20 +1,14 @@
 {
-  "duration": 30, 
+  "duration": 30,
   "captions": false,
-  "audio": {
-    "fade": true,
-    "theme": "Relaxing",
-    "files": [
-      "assets/rain.mp3"
-    ]
-  },
+  "audio": { "fade": true, "theme": "Relaxing", "files": ["assets/rain.mp3"] },
   "video": {
     "fade": true,
     "scale": true,
     "overlay": true,
     "watermark": true,
     "theme": "Rain",
-    "resolution": "HD",
+    "resolution": "4K",
     "hashtags": ["#rain"]
   }
 }

@@ -3,8 +3,8 @@ const { inspect } = require('util')
 const { existsSync } = require('fs')
 const { clean } = require('../utils')
 const { progress } = require('../logger')
-const { ASSET_BASE } = require('../config')
 const { thumbnail } = require('../editor/ffmpeg')
+const { ASSET_BASE } = require('../config').assets
 const { mkdir, copyFile, writeFile } = require('fs').promises
 const { generateTitle, generateDescription } = require('../captioner')
 const { default: getVideoDurationInSeconds } = require('get-video-duration')
@@ -56,6 +56,7 @@ const package = async (spec, video, videos, captions, audios, audio) => {
   log(11, 'Cleaning up temp files')
   clean('temp')
 
+  // Output
   console.log(
     chalk.green`\n
     

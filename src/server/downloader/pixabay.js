@@ -1,14 +1,14 @@
 const puppeteer = require('puppeteer')
 const { sample } = require('underscore')
 const { progress } = require('../logger')
-const { PIXABAY_URL } = require('../config')
+const { BASE_URL } = require('../config').clients.pixabay
 const log = progress.bind(this, 'pixabay', 5)
 
 const search = async theme => {
   console.time('scrapeTracks')
   log(1, `scraping Pixabay for "${theme}" music`)
 
-  const searchUrl = `${PIXABAY_URL}/${theme}`
+  const searchUrl = `${BASE_URL}/${theme}`
   log(2, `Opening browser to ${searchUrl}`)
   const browser = await puppeteer.launch({ headless: false })
   const page = await browser.newPage()
@@ -35,4 +35,5 @@ const search = async theme => {
   return sample(tracks, tracks.length)
 }
 
+// TODO: Extend with more clients that implement a search API
 module.exports = { search }

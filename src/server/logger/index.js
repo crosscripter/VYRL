@@ -12,6 +12,7 @@ const log = (...msgs) => {
   )
 }
 
+// TODO: Need to refactor how logging is done
 const progress = (module, total, step, name, args) => {
   log(
     chalk`{bold {blue ${module}}} {blue (${step}/${total})} {white ${name}...}`,

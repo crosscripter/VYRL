@@ -4,7 +4,7 @@ const { loadAssets } = require('../loader')
 const { getAudios } = require('../downloader')
 const { parentPort } = require('worker_threads')
 const { fade, loop, concatmp3 } = require('../editor/ffmpeg')
-const { INTRO_DURATION, OUTRO_DURATION } = require('../config')
+const { INTRO_DURATION, OUTRO_DURATION } = require('../config').assets
 
 parentPort.on('message', async msg => {
   let audios = []

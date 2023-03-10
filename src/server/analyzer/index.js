@@ -10,10 +10,6 @@ const {
   SentimentAnalyzer,
 } = require('natural')
 
-const LANG = 'EN'
-const DEFAULT_CAT = 'N'
-const DEFAULT_CAT_CAP = 'NNP'
-
 const ruleSet = new RuleSet(LANG)
 const lexicon = new Lexicon(LANG, DEFAULT_CAT, DEFAULT_CAT_CAP)
 

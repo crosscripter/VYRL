@@ -2,9 +2,9 @@ const { log } = require('../logger')
 const { sample } = require('underscore')
 const { titleCase } = require('../utils')
 const { createClient } = require('pexels')
-const { PEXELS_API_KEY } = require('../config')
+const { API_KEY } = require('../config').clients.pexels
 
-const client = createClient(PEXELS_API_KEY)
+const client = createClient(API_KEY)
 
 const search = async (query, per_page) => {
   log('Searching for', query, 'videos on Pexel...')
@@ -19,8 +19,8 @@ const search = async (query, per_page) => {
   return sample(videos, per_page)
     .map(result => {
       const { duration, url, width, user, video_files } = result
-
       if (duration < 10 || width < 1920) return null
+
       const name = titleCase(user?.name)
       const title = titleCase(getTitleFromUrl(url))
       const video = video_files.filter(isVideoHD).slice(-1)[0]?.link

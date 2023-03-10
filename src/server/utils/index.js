@@ -1,8 +1,12 @@
 const { join, parse } = require('path')
-const { ASSET_BASE } = require('../config')
 const { readdirSync, unlinkSync } = require('fs')
+const { ASSET_BASE } = require('../config').assets
 
+const fileExt = file => parse(file).ext.slice(1).trim()
 const plural = (noun, n) => `${noun.toUpperCase()}${n <= 1 ? '' : 'S'}`
+
+const tempName = ext =>
+  `${ASSET_BASE}/${Math.random().toString(13).slice(2)}.temp.${ext}`
 
 const titleCase = str =>
   str
@@ -10,11 +14,6 @@ const titleCase = str =>
     .split(' ')
     .map(w => w.replace(w[0], w[0]?.toUpperCase()))
     .join(' ')
-
-const fileExt = file => parse(file).ext.slice(1).trim()
-
-const tempName = ext =>
-  `${ASSET_BASE}/${Math.random().toString(13).slice(2)}.temp.${ext}`
 
 const resolveFiles = files =>
   files.map(f => {

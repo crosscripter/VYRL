@@ -9,10 +9,12 @@ const { plural, tempName, titleCase } = require('../utils')
 const generateTitle = spec => {
   const mins = Math.floor(spec.duration / 60)
   const hours = Math.floor(spec.duration / 3600)
+
   const duration =
     hours >= 1
       ? `${hours} ${plural('hour', hours)}`
       : `${mins} ${plural('minute', mins)}`
+
   const name = `${spec.audio.theme} ${spec.video.theme.toUpperCase()}`
   const keywords = `Relax, Study, Work or Meditation Music`
   const title = `${name} ${spec.video.resolution} - ${keywords} (${duration}!)`

@@ -1,33 +1,41 @@
 {
-  "SERVER_HOST": "localhost",
-  "SERVER_PORT": 3000,
-  "MAX_PER_PAGE": 70,
-  "INTRO": "assets/intro.mp4",
-  "INTRO_DURATION": 5,
-  "WATERMARK": "assets/watermark.png",
-  "SUBSCRIBE": "assets/subscribe.mp4",
-  "OUTRO": "assets/outro.mp4",
-  "OUTRO_DURATION": 7,
-  "ASSET_BASE": "./src/server/public",
-  "TITLE_FONT": "Roboto-Black.ttf",
-  "EXTS": { "image": "png", "video": "mp4", "audio": "mp3" },
-  "PIXABAY_URL": "https://pixabay.com/music/search/",
-  "PEXELS_API_KEY": "563492ad6f91700001000001e841f3975d3f4ca18c5b020bd7109fe6",
-  "DEFAULT_RESOLUTION": "FULL HD",
-  "RESOLUTIONS": {
-    "HD": [1920, 1080],
-    "4K": [3840, 2160],
-    "MHD": [1080, 1920]
+  "server": { "HOST": "localhost", "PORT": 3000 },
+  "assets": {
+    "MAX_PER_PAGE": 70,
+    "INTRO_DURATION": 5,
+    "OUTRO_DURATION": 7,
+    "INTRO": "assets/intro.mp4",
+    "OUTRO": "assets/outro.mp4",
+    "TITLE_FONT": "Roboto-Black.ttf",
+    "ASSET_BASE": "./src/server/public",
+    "WATERMARK": "assets/watermark.png",
+    "SUBSCRIBE": "assets/subscribe.mp4",
+    "EXTS": { "image": "png", "video": "mp4", "audio": "mp3" }
+  },
+  "clients": {
+    "pixabay": { "BASE_URL": "https://pixabay.com/music/search/" },
+    "pexels": {
+      "API_KEY": "563492ad6f91700001000001e841f3975d3f4ca18c5b020bd7109fe6"
+    }
+  },
+  "video": {
+    "DEFAULT_RESOLUTION": "HD",
+    "RESOLUTIONS": {
+      "HD": [1920, 1080],
+      "4K": [3840, 2160],
+      "MHD": [1080, 1920]
+    }
+  },
+  "language": {
+    "LANG": "EN",
+    "DEFAULT_CAT": "N",
+    "DEFAULT_CAT_CAP": "NNP"
   },
   "brand": {
     "creator": "VYRL Videos (Michael Schutt)",
     "source": "VYRL :: AI Video Generation Engine",
-    "video": {
-      "source": "Pexels (https://pexels.com/)"
-    },
-    "audio": {
-      "source": "Pixabay (https://pixabay.com/)"
-    },
+    "video": { "source": "Pexels (https://pexels.com/)" },
+    "audio": { "source": "Pixabay (https://pixabay.com/)" },
     "streamUrl": "https://youtube.com/",
     "subscribe": "https://bit.ly/3THzfR7",
     "playlist": "https://bit.ly/3qfpprV",
