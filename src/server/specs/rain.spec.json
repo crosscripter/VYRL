@@ -1,11 +1,11 @@
 {
-  "duration": 60, 
+  "duration": 30, 
   "captions": false,
   "audio": {
     "fade": true,
     "theme": "Relaxing",
     "files": [
-      "assets/audios/Alexander - Rain sound (orangefreesounds.com).mp3"
+      "assets/rain.mp3"
     ]
   },
   "video": {

@@ -16,7 +16,8 @@ const parseInfo = async name => {
       JSON.stringify({ artist, name, source, ext })
   )
 
-  const info = JSON.parse(json)
+  let info = { artist: null, name: null, source: null, ext: null } 
+  try { info = JSON.parse(json) } catch { }
   const duration = await getDuration(name, info.ext)
   return { ...info, file: name, duration }
 }
