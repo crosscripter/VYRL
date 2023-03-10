@@ -1,4 +1,4 @@
-![VYRL](brand/VYRL-banner.jpg)
+![VYRL](brand/image/VYRL-banner.jpg)
 
 # AI Viral Video Generation
 
