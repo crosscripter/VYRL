@@ -2,7 +2,7 @@ const chalk = require('chalk')
 const { inspect } = require('util')
 const { existsSync } = require('fs')
 const { clean } = require('../utils')
-const { progress } = require('../logger')
+const log = require('../logger')('packager')
 const { thumbnail } = require('../editor/ffmpeg')
 const { ASSET_BASE } = require('../config').assets
 const { mkdir, copyFile, writeFile } = require('fs').promises
@@ -10,14 +10,13 @@ const { generateTitle, generateDescription } = require('../captioner')
 const { default: getVideoDurationInSeconds } = require('get-video-duration')
 
 const package = async (spec, video, videos, captions, audios, audio) => {
-  const log = progress.bind(this, 'packager', 11)
-  log(1, 'Generating description')
+  log('package', 'Generating description')
   const description = await generateDescription(spec)
 
-  log(2, 'Generating thumbnail')
+  log('package', 'Generating thumbnail')
   let thumb = await thumbnail(spec, video)
 
-  log(3, 'Writing output files')
+  log('package', 'Writing output files')
   const copyToDir = (file, name) => copyFile(file, `${dir}/${name}`)
 
   const writeToFile = (file, contents) =>
@@ -29,35 +28,36 @@ const package = async (spec, video, videos, captions, audios, audio) => {
   const dir = `${ASSET_BASE}/uploads/YouTube/${id}`
   if (!existsSync(dir)) await mkdir(dir)
 
-  log(4, 'Writing title')
+  log('package', 'Writing title')
   await writeToFile('title.txt', title)
 
-  log(5, 'Writing description')
+  log('package', 'Writing description')
   await writeToFile('description.txt', description)
 
-  log(6, 'Writing tags')
+  log('package', 'Writing tags')
   await writeToFile('tags.txt', spec.video.hashtags.join('\n'))
 
-  log(7, 'Copying audio', audio)
+  log('package', 'Copying audio', audio)
   await copyToDir(audio, 'audio.mp3')
 
-  log(8, 'Copying video', video)
+  log('package', 'Copying video', video)
   await copyToDir(video, 'video.mp4')
 
-  log(9, 'Copying thumbnail', thumb)
+  log('package', 'Copying thumbnail', thumb)
   await copyToDir(thumb, 'thumbnail.png')
 
   if (spec.captions) {
-    log(10, 'Copying captions', captions.file)
+    log('package', 'Copying captions', captions.file)
     await copyToDir(captions.file, 'captions.srt')
   }
 
   const duration = await getVideoDurationInSeconds(`${dir}/video.mp4`)
-  log(11, 'Cleaning up temp files')
+  log('package', 'Cleaning up temp files')
   clean('temp')
 
   // Output
-  console.log(
+  log(
+    'package',
     chalk.green`\n
     
 ----------- {bold {green VIDEO PRODUCED }} ----------- 

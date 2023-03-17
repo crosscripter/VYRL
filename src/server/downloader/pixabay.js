@@ -1,20 +1,19 @@
 const puppeteer = require('puppeteer')
 const { sample } = require('underscore')
-const { progress } = require('../logger')
+const log = require('../logger')('pixabay')
 const { BASE_URL } = require('../config').clients.pixabay
-const log = progress.bind(this, 'pixabay', 5)
 
 const search = async theme => {
   console.time('scrapeTracks')
-  log(1, `scraping Pixabay for "${theme}" music`)
+  log('search', `Searching Pixabay for "${theme}" music`)
 
   const searchUrl = `${BASE_URL}/${theme}`
-  log(2, `Opening browser to ${searchUrl}`)
+  log('scrape', `Opening browser to ${searchUrl}`)
   const browser = await puppeteer.launch({ headless: false })
   const page = await browser.newPage()
   await page.goto(searchUrl)
 
-  log(3, `Finding links to music on page`)
+  log('scrape', `Finding links to music on page`)
   const tracks = await page.$$eval('.track-main', tracks => {
     return tracks.map(
       ({ children: [a, b, titleChild, c, infoChild, downloadChild] }) => {
@@ -27,11 +26,11 @@ const search = async theme => {
     )
   })
 
-  log(4, `Closing browser`)
+  log('scrape', `Closing browser`)
   await browser.close()
   console.timeEnd('scrapeTracks')
 
-  log(5, `Scraped ${tracks.length} ${theme} track(s) from ${searchUrl}`)
+  log('search', `Found ${tracks.length} ${theme} track(s) from ${searchUrl}`)
   return sample(tracks, tracks.length)
 }
 

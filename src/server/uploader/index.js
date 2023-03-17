@@ -1,12 +1,12 @@
-const { log } = require('../logger')
+const { resolve } = require('path')
 const sendkeys = require('sendkeys')
 const { readFileSync } = require('fs')
-const { join, resolve, parse } = require('path')
+const log = require('../logger')('uploader')
 
 const wait = ms => new Promise(res => setTimeout(res, ms))
 
 const upload = async videoPath => {
-  log(`Uploading video ${videoPath}`)
+  log('upload', `Uploading video ${videoPath}`)
   const skescape = text => escape(text).replace(/%/gm, '+5')
   const title = skescape(readFileSync(`${videoPath}/title.txt`).toString())
   const description = skescape(
@@ -17,31 +17,29 @@ const upload = async videoPath => {
     .split(' ')
     .map(skescape)
 
-  log('Opening start menu')
+  log('chrome', 'Opening chrome')
   await sendkeys('^{ESCAPE}')
-
-  log('Opening chrome')
   await sendkeys('chrome')
   await sendkeys('{ENTER}')
 
-  log('Go to channel upload page')
+  log('chrome', 'Go to channel upload page')
   await sendkeys('^L')
   const UPLOAD_URL = `https://studio.youtube.com/channel/UC7xJpL8WWGUOxvbbHshcmQw/videos/upload?d=ud`
   await sendkeys(UPLOAD_URL)
   await sendkeys('{ENTER}')
 
   await wait(5000)
-  log('Click the upload button')
+  log('chrome', 'Click the upload button')
   await sendkeys('{TAB}{TAB}{TAB}{ENTER}')
 
-  log('Type the file to upload')
+  log('chrome', 'Type the file to upload')
   await wait(2000)
   await sendkeys(resolve(videoPath) + '{ENTER}')
   await wait(2000)
   await sendkeys('video.mp4{ENTER}')
 
   await wait(10000)
-  log('Inject script into upload page')
+  log('chrome', 'Inject script into upload page')
   await sendkeys('^+J')
   await wait(1000)
   await sendkeys('{F6}{F6}{F6}{F6}')
@@ -77,29 +75,29 @@ const upload = async videoPath => {
   await sendkeys('{ENTER}')
 
   await wait(3000)
-  log('Clicking next button')
+  log('chrome', 'Clicking next button')
   // await sendkeys('^+J')
   await sendkeys(`document.querySelector+9'#next-button'+0.click+9+0;{ENTER}`)
 
   await wait(3000)
-  log('Clicking next button again')
+  log('chrome', 'Clicking next button again')
   // await sendkeys('^+J')
   await sendkeys(`document.querySelector+9'#next-button'+0.click+9+0;{ENTER}`)
 
   await wait(3000)
-  log('Clicking next button again')
+  log('chrome', 'Clicking next button again')
   // await sendkeys('^+J')
   await sendkeys(`document.querySelector+9'#next-button'+0.click+9+0;{ENTER}`)
 
   await wait(3000)
-  log('Setting video privacy...')
+  log('chrome', 'Setting video privacy...')
   await sendkeys(
     `document.querySelectorAll+9'.tp-yt-paper-radio-button'+0[6].click+9+0;{ENTER}`
   )
   await sendkeys('{ENTER}')
 
   await wait(3000)
-  log('Saving video!')
+  log('chrome', 'Saving video!')
   await sendkeys(`document.querySelector+9'#done-button'+0.click+9+0;{ENTER}`)
 }
 

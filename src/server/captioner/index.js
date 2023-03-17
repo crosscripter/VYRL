@@ -2,8 +2,7 @@ const _ = require('underscore')
 const { build } = require('subsrt')
 const { brand } = require('../config')
 const { writeFileSync } = require('fs')
-const { progress } = require('../logger')
-const log = progress.bind(this, 'captioner', 5)
+const log = require('../logger')('captioner')
 const { plural, tempName, titleCase } = require('../utils')
 
 const generateTitle = spec => {
@@ -23,7 +22,7 @@ const generateTitle = spec => {
 
 const generateCaptions = async (videos, audios) => {
   let pos = 0
-  log(1, 'Generating captions')
+  log('caption', 'Generating captions')
 
   const captionText = (type, item) => {
     const isVideo = type === 'video'
@@ -45,22 +44,22 @@ const generateCaptions = async (videos, audios) => {
     return { start, end: pos * 1000, text: captionText(type, item) }
   }
 
-  log(2, 'Generating video captions')
+  log('video', 'Generating video captions')
   const videoCaptions = videos.map(captionAs('video'))
 
-  log(3, 'Generating audio captions')
+  log('audio', 'Generating audio captions')
   pos = 0
   const audioCaptions = audios.map(captionAs('audio'))
   let captions = [...videoCaptions, ...audioCaptions]
   captions = _.sortBy(captions, o => o.start)
 
-  log(4, 'Writing captions SRT subtitle file')
+  log('SRT', 'Writing captions SRT subtitle file')
   const out = tempName('srt')
   const last = captions.slice(-1)[0]
   last.end = videos.slice(-1)[0].duration * 1000
   const content = build(captions, { format: 'srt' })
   writeFileSync(out, content)
-  log(5, 'Captions generated at', out)
+  log('SRT', 'Captions generated at', out)
   return { file: out, lines: captions }
 }
 

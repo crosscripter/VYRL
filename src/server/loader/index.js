@@ -1,4 +1,4 @@
-const { log } = require('../logger')
+const log = require('../logger')('loader')
 const { readFile } = require('fs').promises
 const { ASSET_BASE } = require('../config').assets
 const getMp3Duration = require('get-mp3-duration')
@@ -29,7 +29,7 @@ const loadAssets = async items =>
   await Promise.all(
     items.map(async name => {
       const path = `${ASSET_BASE}/${name}`
-      log(`loadAssets: Loading asset ${path}...`)
+      log('assets', `Loading asset ${path}...`)
       return await parseInfo(path)
     })
   )

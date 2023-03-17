@@ -1,4 +1,4 @@
-const { progress } = require('../logger')
+const log = require('../logger')('analyzer')
 
 const {
   Lexicon,
@@ -14,20 +14,17 @@ const ruleSet = new RuleSet(LANG)
 const lexicon = new Lexicon(LANG, DEFAULT_CAT, DEFAULT_CAT_CAP)
 
 const analyze = text => {
-  const log = progress.bind(this, 'reader', 6)
-  log(1, 'Analyzing text', text)
+  log('analyze', 'Analyzing text', text)
 
-  log(2, 'Tokenizing sentences')
+  log('tokenize', 'Tokenizing sentences')
   let sentences = text
     .split(/\r|\n|\r\n/g)
     .map(x => x.trim())
     .filter(Boolean)
 
   // sentences = new SentenceTokenizer().tokenize(text)
-  log('sentences=', sentences.length)
-
   const analysis = sentences.map(sentence => {
-    log(3, 'Detecting sentiment')
+    log('sentiment', 'Detecting sentiment')
     const words = new WordTokenizer().tokenize(sentence)
 
     const sentiment = new SentimentAnalyzer(
@@ -36,7 +33,7 @@ const analyze = text => {
       'afinn'
     ).getSentiment(words)
 
-    log(4, 'Classifying parts of speech')
+    log('classify', 'Classifying parts of speech')
     const tagger = new BrillPOSTagger(lexicon, ruleSet)
     const { taggedWords } = tagger.tag(words)
 
@@ -44,13 +41,13 @@ const analyze = text => {
       .filter(({ tag }) => /^N/.test(tag))
       .map(({ token }) => token)
 
-    log(5, 'Extracting keywords')
+    log('extract', 'Extracting keywords')
     const keywords = PorterStemmer.tokenizeAndStem(sentence)
 
     return { sentence, words, keywords, nouns, sentiment }
   })
 
-  log(6, 'Analysis complete', analysis)
+  log('analyze', 'Analysis complete', analysis)
   return analysis
 }
 

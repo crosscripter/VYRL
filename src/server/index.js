@@ -3,7 +3,7 @@
  */
 
 const express = require('express')
-const { log } = require('./logger')
+const log = require('./logger')('server')
 const { HOST, PORT } = require('./config').server
 const SERVER_URL = `${HOST}:${PORT}`
 
@@ -16,7 +16,7 @@ app.get('/', (_, res) => res.send(`VYRL Server`))
 
 app.listen(PORT, async () => {
   console.clear()
-  log(`Server launched at http://${SERVER_URL} 🚀`)
+  log('launch', `Server launched at http://${SERVER_URL} 🚀`)
 
   // Produce rain video
   const { produce } = require('./producer')

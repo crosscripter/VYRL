@@ -1,5 +1,5 @@
 const { clean } = require('../utils')
-const { progress } = require('../logger')
+const log = require('../logger')('audio')
 const { loadAssets } = require('../loader')
 const { getAudios } = require('../downloader')
 const { parentPort } = require('worker_threads')
@@ -9,28 +9,27 @@ const { INTRO_DURATION, OUTRO_DURATION } = require('../config').assets
 parentPort.on('message', async msg => {
   let audios = []
   const { spec } = msg
-  const log = progress.bind(this, 'audio', 5)
   const duration = INTRO_DURATION + spec.duration + OUTRO_DURATION
 
   if (spec.audio.files) {
-    log(1, 'Loading audio assets')
+    log('assets', 'Loading audio assets')
     audios = await loadAssets(spec.audio.files)
   } else {
-    log(1, 'Searching for audio assets')
+    log('assets', 'Searching for audio assets')
     const res = await getAudios(spec)
     audios = res.items
   }
 
   let audio = audios.map(({ file }) => file)
 
-  log(3, 'Concatenating audio tracks')
+  log('concat', 'Concatenating audio tracks')
   audio = await concatmp3(audio)
 
-  log(4, 'Looping audio to video duration')
+  log('loop', 'Looping audio to video duration')
   audio = await loop(audio, duration)
 
   if (spec.audio.fade) {
-    log(5, 'Adding fade to audio')
+    log('fade', 'Adding fade to audio')
     audio = await fade({ file: audio, duration })
   }
 

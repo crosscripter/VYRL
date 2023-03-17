@@ -1,3 +1,5 @@
+const log = require('../logger')('producer')
+
 const produceCaptionedVideo = async () => {
   const { analyze } = require('./analyzer')
   const { getVideos, getAudios } = require('./downloader')
@@ -29,9 +31,9 @@ and the cave environment.
 
   const duration = analysis.length * ((2 + 3 + 5 + 8 + 4 + 2) * 2)
   const audioTheme = sentiment > 0.5 ? 'happy' : 'dramatic'
-  log('sentiment score is', sentiment, 'theme is', audioTheme)
+  log('sentiment', 'sentiment score is', sentiment, 'theme is', audioTheme)
 
-  log(`Creating audio for "${audioTheme}"...`)
+  log('audio', `Creating audio for "${audioTheme}"...`)
   const { items: audios } = await getAudios({
     duration,
     audio: {
@@ -43,12 +45,12 @@ and the cave environment.
   let audio = await concatmp3(audios.map(({ file }) => file))
   audio = await fade({ file: audio, duration })
 
-  log('Generating voiceover...')
+  log('voiceover', 'Generating voiceover...')
   const narrations = await Promise.all(
     analysis.map(({ sentence }) => say(sentence))
   )
   const narration = await concatmp3(narrations)
-  console.log('narration', narrations, narration, 'audio', audio)
+  log('narration', 'narration', narrations, narration, 'audio', audio)
   audio = await voiceOver([audio, narration])
 
   const results = await Promise.all(
@@ -64,12 +66,12 @@ and the cave environment.
     })
   )
 
-  log(`videos found for "${phrase}"\n\n`, results)
+  log('search', `videos found for "${phrase}"\n\n`, results)
 
   const resultVideos = await Promise.all(
     results.map(async result => {
       let { sentence, video } = result
-      log(`Creating video for "${sentence}" from "${video.name}"...`)
+      log('create', `Creating video for "${sentence}" from "${video.name}"...`)
 
       const text = sentence
         .replace(/([^’'\(\)\s\w])/g, `$1\n`)
@@ -77,24 +79,23 @@ and the cave environment.
         .map(x => x.trim())
         .join('\n')
 
-      console.log('text', text)
-      log(`Adding fade transitions...`)
+      log('fade', `Adding fade transitions...`)
       video = await fade({ file: video.file, duration: video.duration })
       video = await fadeText(video, text)
-      log(`video created for "${sentence}"`, video)
+      log('create', `video created for "${sentence}"`, video)
       return video
     })
   )
 
-  log(`Concatenating all videos...`)
+  log('concat', `Concatenating all videos...`)
   video = await concatmp4(resultVideos)
 
-  log('Scaling video to FULL HD')
+  log('scale', 'Scaling video to FULL HD')
   const { RESOLUTIONS } = require('./config').video
   video = await scale(video, ...RESOLUTIONS.HD)
 
-  log(`Mixing audio and video...`)
+  log('mixer', `Mixing audio and video...`)
   video = await concatAV([video, audio])
 
-  log(`Final video created for "${phrase}"\n`, video)
+  log('captionedVideo', `Final video created for "${phrase}"\n`, video)
 }

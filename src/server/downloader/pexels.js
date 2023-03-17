@@ -1,13 +1,13 @@
-const { log } = require('../logger')
 const { sample } = require('underscore')
 const { titleCase } = require('../utils')
 const { createClient } = require('pexels')
+const log = require('../logger')('pexels')
 const { API_KEY } = require('../config').clients.pexels
 
 const client = createClient(API_KEY)
 
 const search = async (query, per_page) => {
-  log('Searching for', query, 'videos on Pexel...')
+  log('search', 'Searching for', query, 'videos on Pexel...')
   const { videos } = await client.videos.search({ query, per_page })
 
   const isVideoHD = ({ file_type, quality }) =>

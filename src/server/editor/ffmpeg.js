@@ -1,6 +1,6 @@
 const chalk = require('chalk')
 const { join } = require('path')
-const { log, progress } = require('../logger')
+const log = require('../logger')('ffmpeg')
 const { resolveFiles, fileExt, tempName, clean } = require('../utils')
 const { default: getVideoDurationInSeconds } = require('get-video-duration')
 const { EXTS, ASSET_BASE, WATERMARK, TITLE_FONT } = require('../config').assets
@@ -64,8 +64,8 @@ const _ffmpeg = (inputs, ext, outputOptions, filter, inputOptions, output) =>
     if (!inputs.find(i => i.includes(':'))) inputs = resolveFiles(inputs)
 
     log(
+      'execute',
       chalk.yellow(
-        'ffmpeg',
         ...inputOptions,
         ...inputs.map(i => `-i ${i}`),
         ...outputOptions,
@@ -98,12 +98,12 @@ const scale = (video, w, h) => _ffmpeg(video, EXTS.video, options.SCALE(w, h))
 
 const concatMedia = (ext, options) => async files => {
   if (files.length === 1) {
-    console.log('single file skipping transcoding...')
+    log('transcode', 'single file skipping transcoding...')
     const [out] = await resolveFiles(files)
     return out
   }
 
-  log('Starting parallel transcoding')
+  log('transcode', 'Starting parallel transcoding...')
   const names = await Promise.all(resolveFiles(files).map(transcode))
   const out = await _ffmpeg(`concat:${names.join('|')}`, ext, options)
   clean('temp.ts')
@@ -156,9 +156,8 @@ const shadow = (filter, image) =>
 
 const thumbnail = async (spec, video) => {
   const name = `${spec.audio.theme} ${spec.video.theme}`
-  const log = progress.bind(this, 'thumb', 6)
 
-  log(1, 'Extracting frame for thumbnail image')
+  log('thumbnail', 'Extracting frame for thumbnail image')
   const image = await _ffmpeg(
     video,
     EXTS.image,
@@ -167,16 +166,16 @@ const thumbnail = async (spec, video) => {
     filters.THUMBNAIL()
   )
 
-  log(2, 'Adding shadowing to thumbnail')
+  log('thumbnail', 'Adding shadowing to thumbnail')
   let shadowed = await shadow('SHADOW_TOP', image)
   shadowed = await shadow('SHADOW_BOTTOM', shadowed)
 
-  log(3, 'Resolving font path')
+  log('thumbnail', 'Resolving font path')
   const title = name.split(' ').join('\n')
   const assetsDir = `${ASSET_BASE}/assets`
   const font = join(assetsDir, TITLE_FONT).replace(/([\:\\])/g, '\\$1')
 
-  log(4, 'Adding title to thumbnail', title.toUpperCase())
+  log('thumbnail', 'Adding title to thumbnail', title.toUpperCase())
   const titled = await _ffmpeg(
     shadowed,
     EXTS.image,
@@ -189,13 +188,13 @@ const thumbnail = async (spec, video) => {
 
   if (res) {
     const badge = `${ASSET_BASE}/assets/${res}.${EXTS.image}`
-    log(5, 'Adding quality badge to thumbnail', badge)
+    log('thumbnail', 'Adding quality badge to thumbnail', badge)
     badged = await _ffmpeg([titled, badge], EXTS.image, null, filters.BADGE())
   }
 
   const WATERMARK_PNG = WATERMARK.replace('gif', EXTS.image)
-  log(6, 'Watermarking thumbnail', WATERMARK_PNG)
-  log(`thumb: Watermarking VYRL logo...`, WATERMARK_PNG)
+  log('thumbnail', 'Watermarking thumbnail', WATERMARK_PNG)
+  log('thumbnail', `Watermarking VYRL logo...`, WATERMARK_PNG)
   return watermark([badged, WATERMARK_PNG], EXTS.image, 0.3)
 }
 
