@@ -1,4 +1,5 @@
 const log = require('../logger')('analyzer')
+const { LANG, DEFAULT_CAT, DEFAULT_CAT_CAP } = require('../config').language
 
 const {
   Lexicon,
@@ -28,8 +29,8 @@ const analyze = text => {
     const words = new WordTokenizer().tokenize(sentence)
 
     const sentiment = new SentimentAnalyzer(
-      'English',
-      PorterStemmer,
+      'English', 
+      PorterStemmer, 
       'afinn'
     ).getSentiment(words)
 

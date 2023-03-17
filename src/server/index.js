@@ -18,7 +18,6 @@ app.listen(PORT, async () => {
   console.clear()
   log('launch', `Server launched at http://${SERVER_URL} 🚀`)
 
-  // Produce rain video
-  const { produce } = require('./producer')
-  await produce(require('./specs/rain.spec'))
+  const { scriptureVideo } = require('./producer')
+  await scriptureVideo('John 3:16')
 })
