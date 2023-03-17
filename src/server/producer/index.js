@@ -1,10 +1,14 @@
 const Logger = require('../logger')
 const { package } = require('../packager')
 const { Worker } = require('worker_threads')
+const Bible = require("../downloader/bible")
+const { getVideos, getAudios } = require("../downloader")
 const PARALLEL_LIMIT = require('os').cpus().length
 const { INTRO, OUTRO } = require('../config').assets
 const { generateCaptions } = require('../captioner')
 const { concatAV, concatmp4, subtitle } = require('../editor/ffmpeg')
+const { analyze } = require('../analyzer')
+const log = Logger('producer')
 
 const Producer = (type, spec) =>
   new Promise(async resolve => {
@@ -21,8 +25,32 @@ const Producer = (type, spec) =>
     })
   })
 
+const scriptureVideo = async ref => {
+  log('scriptureVideo', `Generating video for ${ref}`)
+  const passage = await Bible.passage(ref)
+
+  await Promise.all(passage.map(async ({ text, verse }) => {
+    log('analysis', `Analyzing verse ${verse} "${text}" for keywords`)
+    const [analysis] = analyze(text.trim())
+    const { nouns: keywords, sentiment } = analysis
+    log('analysis', `Result was`, keywords, sentiment)
+
+    const theme = keywords.join(' ')
+    const mood = sentiment >= 0.5 ? 'uplifting' : 'dramatic'
+
+    const spec = {
+      duration: 60,
+      video: { theme, count: 1 },
+      audio: { theme: mood, count: 1 }
+    }
+
+    log('produce', 'Fetching audio/video assets')
+    let [{ audio }, { video }] = await Promise.all(['audio', 'video'].map(type => Producer(type, spec)))
+    log('produce', 'Result was ', audio, video)
+  }))
+}
+
 const produce = async spec => {
-  const log = Logger('produce')
   console.time('produce')
   log('produce', 'Producing video', spec)
 
@@ -56,4 +84,4 @@ const produce = async spec => {
   return output
 }
 
-module.exports = { produce }
+module.exports = { produce, scriptureVideo }
