@@ -1,13 +1,14 @@
 const Logger = require('../logger')
+const wordwrap = require('wordwrapjs')
 const { package } = require('../packager')
+const { analyze } = require('../analyzer')
 const { Worker } = require('worker_threads')
 const Bible = require("../downloader/bible")
-const { getVideos, getAudios } = require("../downloader")
 const PARALLEL_LIMIT = require('os').cpus().length
 const { INTRO, OUTRO } = require('../config').assets
 const { generateCaptions } = require('../captioner')
-const { concatAV, concatmp4, subtitle } = require('../editor/ffmpeg')
-const { analyze } = require('../analyzer')
+const { fade, fadeText, concatAV, concatmp4, subtitle } = require('../editor/ffmpeg')
+
 const log = Logger('producer')
 
 const Producer = (type, spec) =>
@@ -29,25 +30,61 @@ const scriptureVideo = async ref => {
   log('scriptureVideo', `Generating video for ${ref}`)
   const passage = await Bible.passage(ref)
 
-  await Promise.all(passage.map(async ({ text, verse }) => {
-    log('analysis', `Analyzing verse ${verse} "${text}" for keywords`)
-    const [analysis] = analyze(text.trim())
-    const { nouns: keywords, sentiment } = analysis
-    log('analysis', `Result was`, keywords, sentiment)
+  log('concat', 'Concatenating intro to video')
+  let svideo = await concatmp4([INTRO])
 
-    const theme = keywords.join(' ')
-    const mood = sentiment >= 0.5 ? 'uplifting' : 'dramatic'
+  for (let { text, verse } of passage) {
+    const phrases = text.split(/[\,\.\:\;]/)
+    
+    for (let text of phrases) {
+      if (!text.trim()) return 
+      
+      log('analysis', `Analyzing phrase "${text}" from verse ${verse} for keywords`)
+      const [analysis] = analyze(text.trim())
+      const { words, sentiment } = analysis
 
-    const spec = {
-      duration: 60,
-      video: { theme, count: 1 },
-      audio: { theme: mood, count: 1 }
+      const mood = sentiment >= 0.5 ? 'uplifting' : 'dramatic'
+      let keywords = words.filter(w => w.length >= 5)
+      if (!keywords.length) keywords = [mood]
+      const theme = keywords.join(' ')
+      log('analysis', `Result for "${text}" was`, keywords, sentiment, mood)
+
+      // build spec
+      const LINE_DURATION = 5 
+      log('analysis', 'line duration', LINE_DURATION)
+
+      const spec = {
+        duration: LINE_DURATION * 2,
+        audio: { theme: mood, fade: true, count: 1 },
+        video: { theme, scale: true, resolution: 'HD', count: 1 },
+      }
+
+      log('produce', 'Fetching audio/video assets')
+      let [{ audio }, { video }] = await Promise.all(['audio', 'video'].map(type => Producer(type, spec)))
+      log('produce', 'Result was ', audio, video)
+
+      log('fade', `Adding fade transitions...`)
+      video = await fade({ file: video, duration: spec.duration })
+
+      // Fade in each line of text at different starts
+      log('fade', `Fading in line "${text}" for ${LINE_DURATION}secs`)
+      video = await fadeText(video, text, LINE_DURATION, LINE_DURATION / 2) 
+    
+      // Add to the scripture video
+      log('CONCAT VIDEOS', svideo, video)
+      svideo = await concatmp4([svideo, video])
     }
+  }
 
-    log('produce', 'Fetching audio/video assets')
-    let [{ audio }, { video }] = await Promise.all(['audio', 'video'].map(type => Producer(type, spec)))
-    log('produce', 'Result was ', audio, video)
-  }))
+  await Promise.resolve(true)
+  
+  log('concat', 'Concatenating outro to video')
+  svideo = await concatmp4([svideo, OUTRO])
+
+  log('mixer', 'Mixing audio into video and encoding media')
+  svideo = await concatAV([svideo, audio])
+
+  log('produce', "Finished scripture video", svideo)
 }
 
 const produce = async spec => {

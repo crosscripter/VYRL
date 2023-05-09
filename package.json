@@ -36,7 +36,8 @@
     "sendkeys": "^1.1.1",
     "sharp": "^0.31.0",
     "subsrt": "^1.1.1",
-    "underscore": "^1.13.4"
+    "underscore": "^1.13.4",
+    "wordwrapjs": "^5.1.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.19"

@@ -73,6 +73,6 @@ parentPort.on('message', async msg => {
     video = await overlay([video, SUBSCRIBE])
   }
 
-  clean('temp.mp4', video)
+  // clean('temp.mp4', video)
   parentPort.postMessage({ video, videos })
 })

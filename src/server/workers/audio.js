@@ -33,6 +33,6 @@ parentPort.on('message', async msg => {
     audio = await fade({ file: audio, duration })
   }
 
-  clean('temp.mp3', audio)
+  // clean('temp.mp3', audio)
   parentPort.postMessage({ audio, audios })
 })
